@@ -31,6 +31,9 @@ N_WEEKS_JEEC = 1
 N_DIAS_JEEC = 9
 MAX_SHIFTS_PER_WEEK = 50
 N_SHIFTS_PER_DAY = 10
+departments = ['Webdev', 'Speakers', 'Buss']
+n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
+NUM_MIN_ELEMENTS_PER_DEP = 1
         
 def eaSimpleWithElitism(population, toolbox, cxpb, mutpb, ngen, stats=None,
              halloffame=None, verbose=__debug__):
@@ -103,6 +106,7 @@ class NurseSchedulingProblem:
 
         # list of nurses:
         self.nurses = pessoas['Nome']
+        self.nurses_equipas = pessoas['Equipa']
 
         # nurses' respective shift preferences - morning, evening, night:
         self.shiftPreference = pessoas['Disponibilidade']
@@ -157,9 +161,10 @@ class NurseSchedulingProblem:
         shiftsPerWeekViolations = self.countShiftsPerWeekViolations(nurseShiftsDict)[1]
         nursesPerShiftViolations = self.countNursesPerShiftViolations(nurseShiftsDict)[1]
         shiftPreferenceViolations = self.countShiftPreferenceViolations(nurseShiftsDict)
+        lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
 
         # calculate the cost of the violations:
-        hardContstraintViolations = nursesPerShiftViolations + shiftsPerWeekViolations
+        hardContstraintViolations = nursesPerShiftViolations + shiftsPerWeekViolations + lessthan2perDep
         softContstraintViolations = shiftPreferenceViolations
 
         return self.hardConstraintPenalty * hardContstraintViolations + softContstraintViolations
@@ -252,6 +257,43 @@ class NurseSchedulingProblem:
                     violations += 1
 
         return violations
+    
+    def countlessthan2perDep(self, nurseShiftsDict):
+        violations = 0
+        
+        people_per_shift = [[] for _ in range(n_shifts)]
+        
+        counters = {dep: 0 for dep in departments}
+        # print(counters)
+        
+        for member in nurseShiftsDict:
+            shifts = nurseShiftsDict[member]
+            # name = member
+            # print(len(shifts))
+            for i in range(len(shifts)):
+                if shifts[i] == 1:
+                    people_per_shift[i].append(member)
+        
+        for i in range(len(people_per_shift)):
+            people_list = people_per_shift[i]
+            for j in range(len(people_list)):
+                people = people_list[j]
+                # print(people)
+                # Find index of person and return team
+                # Funciona se nao houver nomes repetidos
+                for i in range(len(self.nurses)):
+                    if self.nurses[i] == people:
+                        equipa = self.nurses_equipas[i]
+                
+                counters[equipa] += 1
+            
+            for dep in departments:
+                if counters[dep] < NUM_MIN_ELEMENTS_PER_DEP:
+                    violations += 1
+                counters[dep] = 0
+                
+
+        return violations
 
     def printScheduleInfo(self, schedule):
         """
@@ -281,14 +323,18 @@ class NurseSchedulingProblem:
         print("Shift Preference Violations = ", shiftPreferenceViolations)
         print()
         
-        n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
+        lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
+        
+        lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
+        print("lessthan2perDep violations = ", lessthan2perDep)
+        print()
 
         people_per_shift = [[] for _ in range(n_shifts)]
-        print(n_shifts)
+        # print(n_shifts)
         for member in nurseShiftsDict:
             shifts = nurseShiftsDict[member]
             # name = member
-            print(len(shifts))
+            # print(len(shifts))
             for i in range(len(shifts)):
                 if shifts[i] == 1:
                     people_per_shift[i].append(member)
@@ -317,10 +363,11 @@ class NurseSchedulingProblem:
         
         for i in range(N_DIAS_JEEC):
             print('Dia ', i)
-            for j in N_SHIFTS_PER_DAY:
+            for j in range(N_SHIFTS_PER_DAY):
                 print('Turno ', j)
-                element = final_distribution[i * N_SHIFTS_PER_DAY + j]
-                print(element['Name'], element['turno'])
+                elements = final_distribution[i * N_SHIFTS_PER_DAY + j]
+                for element in elements:
+                    print(element['person'], element['turno'])
                 
                 
                 
