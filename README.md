@@ -8,10 +8,9 @@ Passos:
 -Mapear pessoas por turnos
 -Garantir 2 pessoas de cada departamento sempre
 
-TODO:
+# TODO:
 
 -Mapear pessoas por turnos com prioridade de departamento
--Importar disponibilidade de questionario para o excel das pessoas
 
 
 

@@ -29,7 +29,7 @@ turnos = pd.read_csv('turnos.csv', encoding='utf-8')
 
 N_WEEKS_JEEC = 1
 N_DIAS_JEEC = 9
-MAX_SHIFTS_PER_WEEK = 50
+MAX_SHIFTS_PER_WEEK = 20
 N_SHIFTS_PER_DAY = 10
 departments = ['Webdev', 'Speakers', 'Buss']
 n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
@@ -304,7 +304,7 @@ class NurseSchedulingProblem:
 
         print("Schedule for each nurse:")
         for nurse in nurseShiftsDict:  # all shifts of a single nurse
-            print(nurse, ":", nurseShiftsDict[nurse]) # TODO 
+            print(nurse, ":", nurseShiftsDict[nurse]) 
 
         print("consecutive shift violations = ", self.countConsecutiveShiftViolations(nurseShiftsDict))
         print()
@@ -356,11 +356,13 @@ class NurseSchedulingProblem:
         for i in range(len(people_per_shift)):
             people_list = people_per_shift[i]
             vagas_list = vagas[i]
+            
             for j in range(min(len(people_list), len(vagas_list))):
                 people = people_list[j]
                 final_distribution[i].append({'person': people, 'turno': vagas_list[j]['turno']})
                 
         
+        final = []
         for i in range(N_DIAS_JEEC):
             print('Dia ', i)
             for j in range(N_SHIFTS_PER_DAY):
@@ -368,7 +370,10 @@ class NurseSchedulingProblem:
                 elements = final_distribution[i * N_SHIFTS_PER_DAY + j]
                 for element in elements:
                     print(element['person'], element['turno'])
-                
+                    final.append({'Dia': i,'Horario': j, 'Name': element['person'], 'Turno': element['turno']})
+                    
+        df = pd.DataFrame(final)
+        df.to_excel('distribution.xlsx', index=False)  
                 
                 
                 
@@ -383,7 +388,7 @@ HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint viol
 POPULATION_SIZE = 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 20 # TODO INCREASE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+MAX_GENERATIONS = 200 # TODO INCREASE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:
