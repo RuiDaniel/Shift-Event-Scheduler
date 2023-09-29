@@ -1,6 +1,2 @@
 turnos,decorre,Num Pessoas,preferencia
-Turno1,"[1,1,1,1,1,1,1,1,1,1]",2,Webdev
-Turno2,"[1,1,1,1,1,1,1,1,1,1]",3,Webdev
-Turno3,"[1,1,1,1,1,1,1,1,1,1]",2,Webdev
-Turno4,"[1,1,1,1,1,1,1,1,1,1]",2,Webdev
-Turno5,"[1,1,1,1,1,1,1,1,1,1]",3,Webdev
+Turno1,"[1,0,0,0,0,0,0,0,0,0]",2,Webdev

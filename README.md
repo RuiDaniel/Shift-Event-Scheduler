@@ -1,4 +1,16 @@
-Passos:
+Forms: https://docs.google.com/forms/d/1hw4nKhYRcc5oLRINhA9ofr1W6NcNw4JWfUXr0omCbCw/edit#responses
+
+No excel do forms:
+-Nomes colunas: Dia 1, Dia 2, Dia 3, ...
+-Converter 8h-9h para _8h_9h, 9h-10h para _9h_10h, ...
+
+# TODO:
+
+-Mapear pessoas por turnos com prioridade de departamento pelos turnos
+
+Passos de código (para programador):
+
+Questionário -> Horário sem turno atribuído (usa excel das pessoas) -> Distribuir diferentes turnos (usa excel dos turnos)
 
 -Código enfermeiras a funcionar
 -Ir buscar funcionarios a um excel
@@ -7,17 +19,5 @@ Passos:
 -Ir buscar turnos diferentes a um excel
 -Mapear pessoas por turnos
 -Garantir 2 pessoas de cada departamento sempre
-
-# TODO:
-
--Mapear pessoas por turnos com prioridade de departamento
-
-
-
-
-
-
-
-
-
-Questionário -> Horário sem turno atribuído (usa excel das pessoas) -> Distribuir diferentes turnos (usa excel dos turnos)
+-Minimo de turnos por semana
+-Transformar disponibilidades em 0,1.

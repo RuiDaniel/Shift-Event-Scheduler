@@ -11,7 +11,52 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import pandas as pd
-  
+
+N_WEEKS_JEEC = 1
+N_DIAS_JEEC = 9
+MAX_SHIFTS_PER_WEEK = 20
+MIN_SHIFTS_PER_WEEK = 5
+N_SHIFTS_PER_DAY = 10
+departments = ['WebDev', 'Speakers', 'Business', 'Coordinator', 'Logistics', 'Marketing']
+n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
+NUM_MIN_ELEMENTS_PER_DEP = 2
+
+# Generate pessoas.xlsx based on forms.xlsx
+def use_forms():
+    name = 'forms'
+    read_file = pd.read_excel (name + ".xlsx")
+    read_file.to_csv (name + ".csv", 
+                    index = None,
+                    header=True, encoding='utf-8')
+
+    forms = pd.read_csv(name + ".csv", encoding='utf-8') 
+
+    dias = ['Dia 1', 'Dia 2', 'Dia 3', 'Dia 4', 'Dia 5', 'Dia 6', 'Dia 7', 'Dia 8', 'Dia 9']
+
+    turnoss= ['_8h_9h', '_9h_10h', '_10h_11h', '_11h_12h', '_12h_13h', '_13h_14h', '_14h_15h', '_15h_16h', '_16h_17h', '_17h_18h']
+
+    to_exc = []
+
+    # Iterar por cada pessoa
+    for index, row in forms.iterrows():
+        disponibilidade = [0 for _ in range(n_shifts)]
+
+        for i in range(len(dias)):
+            for j in range(len(turnoss)):
+                row[dias[i]] = str(row[dias[i]])
+                # print(row[dias[i]].split(sep=', '))
+                if turnoss[j] in list(row[dias[i]].split(sep=', ')):
+                    disponibilidade[i * N_SHIFTS_PER_DAY + j] = 1
+                
+        to_exc.append({'Nome': row['Nome'], 'Equipa': row['Equipa'], 'Disponibilidade': disponibilidade})
+
+    to_exc = pd.DataFrame(to_exc)
+    to_exc.to_excel("pessoas.xlsx", 
+                    index = None,
+                    header=True)
+    
+# use_forms() # TODO DESCOMENTAR
+
 name = 'pessoas'
 read_file = pd.read_excel (name + ".xlsx")
 read_file.to_csv (name + ".csv", 
@@ -27,13 +72,7 @@ read_file.to_csv (name + ".csv",
 pessoas = pd.read_csv('pessoas.csv', encoding='utf-8') 
 turnos = pd.read_csv('turnos.csv', encoding='utf-8') 
 
-N_WEEKS_JEEC = 1
-N_DIAS_JEEC = 9
-MAX_SHIFTS_PER_WEEK = 20
-N_SHIFTS_PER_DAY = 10
-departments = ['Webdev', 'Speakers', 'Buss']
-n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
-NUM_MIN_ELEMENTS_PER_DEP = 1
+
         
 def eaSimpleWithElitism(population, toolbox, cxpb, mutpb, ngen, stats=None,
              halloffame=None, verbose=__debug__):
@@ -126,6 +165,7 @@ class NurseSchedulingProblem:
 
         # max shifts per week allowed for each nurse
         self.maxShiftsPerWeek = MAX_SHIFTS_PER_WEEK
+        self.minShiftsPerWeek = MIN_SHIFTS_PER_WEEK
 
         # number of weeks we create a schedule for:
         self.weeks = N_WEEKS_JEEC
@@ -217,6 +257,8 @@ class NurseSchedulingProblem:
                 weeklyShiftsList.append(weeklyShifts)
                 if weeklyShifts > self.maxShiftsPerWeek:
                     violations += weeklyShifts - self.maxShiftsPerWeek
+                elif weeklyShifts < self.minShiftsPerWeek:
+                    violations += self.minShiftsPerWeek - weeklyShifts
 
         return weeklyShiftsList, violations
 
@@ -249,7 +291,8 @@ class NurseSchedulingProblem:
         violations = 0
         for nurseIndex, shiftPreference in enumerate(self.shiftPreference):
             # duplicate the shift-preference over the days of the period
-            preference = shiftPreference * (self.shiftsPerWeek // self.shiftPerDay)
+            # preference = shiftPreference * (self.shiftsPerWeek // self.shiftPerDay)
+            preference = shiftPreference
             # iterate over the shifts and compare to preferences:
             shifts = nurseShiftsDict[self.nurses[nurseIndex]]
             for pref, shift in zip(preference, shifts):
@@ -306,8 +349,8 @@ class NurseSchedulingProblem:
         for nurse in nurseShiftsDict:  # all shifts of a single nurse
             print(nurse, ":", nurseShiftsDict[nurse]) 
 
-        print("consecutive shift violations = ", self.countConsecutiveShiftViolations(nurseShiftsDict))
-        print()
+        # print("consecutive shift violations = ", self.countConsecutiveShiftViolations(nurseShiftsDict))
+        # print()
 
         weeklyShiftsList, violations = self.countShiftsPerWeekViolations(nurseShiftsDict)
         print("weekly Shifts = ", weeklyShiftsList)
@@ -359,18 +402,18 @@ class NurseSchedulingProblem:
             
             for j in range(min(len(people_list), len(vagas_list))):
                 people = people_list[j]
-                final_distribution[i].append({'person': people, 'turno': vagas_list[j]['turno']})
+                final_distribution[i].append({'person': people, 'turno': vagas_list[j]['turno']}) # TODO  'Equipa': people['Equipa']
                 
         
         final = []
         for i in range(N_DIAS_JEEC):
-            print('Dia ', i)
+            # print('Dia ', i)
             for j in range(N_SHIFTS_PER_DAY):
-                print('Turno ', j)
+                # print('Turno ', j)
                 elements = final_distribution[i * N_SHIFTS_PER_DAY + j]
                 for element in elements:
                     print(element['person'], element['turno'])
-                    final.append({'Dia': i,'Horario': j, 'Name': element['person'], 'Turno': element['turno']})
+                    final.append({'Dia': i,'Horario': j, 'Name': element['person'], 'Equipa': element['Equipa'], 'Turno': element['turno']})
                     
         df = pd.DataFrame(final)
         df.to_excel('distribution.xlsx', index=False)  
