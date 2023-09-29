@@ -13,11 +13,13 @@ import seaborn as sns
 import pandas as pd
 
 N_WEEKS_JEEC = 1
-N_DIAS_JEEC = 2
+N_DIAS_JEEC = 2 # TODO 
 MAX_SHIFTS_PER_WEEK = 20
 MIN_SHIFTS_PER_WEEK = 5
-N_SHIFTS_PER_DAY = 10
-departments = ['WebDev', 'Speakers', 'Business', 'Coordinator', 'Logistics', 'Marketing']
+MAX_SHIFTS_PER_WEEK_VOLUNTEER = 5
+MIN_SHIFTS_PER_WEEK_VOLUNTEER = 2
+N_SHIFTS_PER_DAY = 10 # TODO
+departments = ['WebDev', 'Speakers', 'Business', 'Coordinator', 'Logistics', 'Marketing', 'Volunteer']
 n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
 NUM_MIN_ELEMENTS_PER_DEP = 2
 
@@ -71,6 +73,10 @@ read_file.to_csv (name + ".csv",
 
 pessoas = pd.read_csv('pessoas.csv', encoding='utf-8') 
 turnos = pd.read_csv('turnos.csv', encoding='utf-8') 
+
+pref_shift = {}
+for index, row in turnos.iterrows():
+    pref_shift[row['turnos']] = row['preferencia']
 
 
         
@@ -166,6 +172,8 @@ class NurseSchedulingProblem:
         # max shifts per week allowed for each nurse
         self.maxShiftsPerWeek = MAX_SHIFTS_PER_WEEK
         self.minShiftsPerWeek = MIN_SHIFTS_PER_WEEK
+        self.maxShiftsPerWeekVol = MAX_SHIFTS_PER_WEEK_VOLUNTEER
+        self.minShiftsPerWeekVol = MIN_SHIFTS_PER_WEEK_VOLUNTEER
 
         # number of weeks we create a schedule for:
         self.weeks = N_WEEKS_JEEC
@@ -249,16 +257,29 @@ class NurseSchedulingProblem:
         violations = 0
         weeklyShiftsList = []
         # iterate over the shifts of each nurse:
-        for nurseShifts in nurseShiftsDict.values():  # all shifts of a single nurse
+            
+        for member in nurseShiftsDict:
+            nurseShifts = nurseShiftsDict[member]
+            # name = member
+            # print(len(shifts))
+            
+            for i in range(len(self.nurses)):
+                if self.nurses[i] == member:
+                    equipa = self.nurses_equipas[i]
+                    
             # iterate over the shifts of each weeks:
             for i in range(0, self.weeks * self.shiftsPerWeek, self.shiftsPerWeek):
                 # count all the '1's over the week:
                 weeklyShifts = sum(nurseShifts[i:i + self.shiftsPerWeek])
                 weeklyShiftsList.append(weeklyShifts)
-                if weeklyShifts > self.maxShiftsPerWeek:
+                if weeklyShifts > self.maxShiftsPerWeek and equipa != 'Volunteer':
                     violations += weeklyShifts - self.maxShiftsPerWeek
-                elif weeklyShifts < self.minShiftsPerWeek:
+                elif weeklyShifts < self.minShiftsPerWeek and equipa != 'Volunteer':
                     violations += self.minShiftsPerWeek - weeklyShifts
+                elif weeklyShifts > self.maxShiftsPerWeekVol and equipa == 'Volunteer':
+                    violations += weeklyShifts - self.maxShiftsPerWeekVol
+                elif weeklyShifts < self.minShiftsPerWeekVol and equipa == 'Volunteer':
+                    violations += self.minShiftsPerWeekVol - weeklyShifts
 
         return weeklyShiftsList, violations
 
@@ -401,6 +422,7 @@ class NurseSchedulingProblem:
         
         # print(vagas)
         
+        # distribui sequencialmente
         for i in range(len(people_per_shift)):
             people_list = people_per_shift[i]
             vagas_list = vagas[i]
@@ -408,20 +430,67 @@ class NurseSchedulingProblem:
             for j in range(min(len(people_list), len(vagas_list))):
                 people = people_list[j]
                 final_distribution[i].append({'person': people['Name'], 'turno': vagas_list[j]['turno'], 'Equipa': people['Equipa']}) 
-                
         
         final = []
+        kk = 0
         for i in range(N_DIAS_JEEC):
             # print('Dia ', i)
             for j in range(N_SHIFTS_PER_DAY):
                 # print('Turno ', j)
                 elements = final_distribution[i * N_SHIFTS_PER_DAY + j]
-                for element in elements:
-                    print(element['person'], element['turno'])
-                    final.append({'Dia': i,'Horario': j, 'Name': element['person'], 'Equipa': element['Equipa'], 'Turno': element['turno']})
+                for element in elements:                    
+                    if element['Equipa'] == pref_shift[element['turno']]:
+                        pref = True
+                    else:
+                        pref = False
+                        
+                    final.append({'Dia': i,'Horario': j, 'Name': element['person'], 'Equipa': element['Equipa'], 'Turno': element['turno'], 'preference': pref, 'id': kk})
+                    kk += 1
+        
+        final = pd.DataFrame(final)
+        
+        n_trocas = 1
+        while n_trocas > 0:
+            troca = []
+            for i in range(N_DIAS_JEEC):
+                for j in range(N_SHIFTS_PER_DAY): 
+                    breakk = 0
+                                   
+                    data = final[(final['Dia'] == i) & (final['Horario'] == j) & (final['preference'] == False)]
+                    print(data)
+                    if len(data) > 1:
+                        for _, person in data.iterrows():
+                            # print('Person: ', person)   
+                            
+                            for _, k in data.iterrows():
+                                # print('k: ', k)
+                                if k['Name'] != person['Name'] and pref_shift[k['Turno']] == person['Equipa']:
+                                    troca.append({'a': person['id'], 'b': k['id']})
+                                    print({'a': person['id'], 'b': k['id']})
+                                    breakk = 1
+                                    break
+                            
+                            if breakk:
+                                break
+            
+            for tr in troca:            
+                a_index = final.index[final['id'] == tr['a']].tolist()[0] 
+                b_index = final.index[final['id'] == tr['b']].tolist()[0]  
+                
+                final.at[a_index, 'Turno'], final.at[b_index, 'Turno'] = final.at[b_index, 'Turno'], final.at[a_index, 'Turno']
+                
+                if pref_shift[final.at[a_index, 'Turno']] == final.at[a_index, 'Equipa']:
+                    final.at[a_index, 'preference'] = True
+                    print('Pref true: ', final.at[a_index])
                     
-        df = pd.DataFrame(final)
-        df.to_excel('distribution.xlsx', index=False)  
+                if pref_shift[final.at[b_index, 'Turno']] == final.at[b_index, 'Equipa']:
+                    final.at[b_index, 'preference'] = True
+                    print('Pref true: ', final.at[b_index])
+            
+            n_trocas = len(troca)
+            print('N trocas = ', n_trocas)
+                
+        final.to_excel('distribution.xlsx', index=False)  
                 
                 
                 
@@ -436,7 +505,7 @@ HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint viol
 POPULATION_SIZE = 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 200
+MAX_GENERATIONS = 1 # TODO 200
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:
