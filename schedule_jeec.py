@@ -13,7 +13,7 @@ import seaborn as sns
 import pandas as pd
 
 N_WEEKS_JEEC = 1
-N_DIAS_JEEC = 9
+N_DIAS_JEEC = 2
 MAX_SHIFTS_PER_WEEK = 20
 MIN_SHIFTS_PER_WEEK = 5
 N_SHIFTS_PER_DAY = 10
@@ -378,9 +378,14 @@ class NurseSchedulingProblem:
             shifts = nurseShiftsDict[member]
             # name = member
             # print(len(shifts))
+            
+            for i in range(len(self.nurses)):
+                if self.nurses[i] == member:
+                    equipa = self.nurses_equipas[i]
+                        
             for i in range(len(shifts)):
                 if shifts[i] == 1:
-                    people_per_shift[i].append(member)
+                    people_per_shift[i].append({'Name': member, 'Equipa': equipa})
         
         # print(people_per_shift)
         
@@ -402,7 +407,7 @@ class NurseSchedulingProblem:
             
             for j in range(min(len(people_list), len(vagas_list))):
                 people = people_list[j]
-                final_distribution[i].append({'person': people, 'turno': vagas_list[j]['turno']}) # TODO  'Equipa': people['Equipa']
+                final_distribution[i].append({'person': people['Name'], 'turno': vagas_list[j]['turno'], 'Equipa': people['Equipa']}) 
                 
         
         final = []
@@ -431,7 +436,7 @@ HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint viol
 POPULATION_SIZE = 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 200 # TODO INCREASE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+MAX_GENERATIONS = 200
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:
