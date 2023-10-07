@@ -1,10 +1,5 @@
 Forms: https://docs.google.com/forms/d/1hw4nKhYRcc5oLRINhA9ofr1W6NcNw4JWfUXr0omCbCw/edit#responses
 
-Requisitos:!!!!!!!!!!!!!
-No excel do forms:
--Nomes colunas: Dia 1, Dia 2, Dia 3, ...
--Converter 8h-9h para _8h_9h, 9h-10h para _9h_10h, ...
-
 Passos de código (para programador):
 
 Questionário -> Horário sem turno atribuído (usa excel das pessoas) -> Distribuir diferentes turnos (usa excel dos turnos)
@@ -20,3 +15,21 @@ Questionário -> Horário sem turno atribuído (usa excel das pessoas) -> Distri
 -Transformar disponibilidades em 0,1.
 -Max e min turnos dos voluntários
 -Mapear pessoas por turnos com prioridade de departamento pelos turnos (ex: turnos de Marketing têm prioridade de malta do dep de marketing)
+
+
+# TODO
+
+Requisitos:!!!!!!!!!!!!!
+No excel do forms:
+-Nomes colunas: Dia 1, Dia 2, Dia 3, ...
+-Converter 8h-9h para _8h_9h, 9h-10h para _9h_10h, ...
+
+-Ao passar de forms para excel casos em que tou a pôr _ são para automatizar
+-Turnos assimétricos
+-Turnos consecutivos
+-Código legível
+
+-Planear um mega teste
+.Falar com Daniel sobre turnos
+.Ver quanto tempo demora
+

@@ -207,14 +207,14 @@ class NurseSchedulingProblem:
         nurseShiftsDict = self.getNurseShifts(schedule)
 
         # count the various violations:
-        # consecutiveShiftViolations = self.countConsecutiveShiftViolations(nurseShiftsDict)
+        consecutiveShiftViolations = self.countConsecutiveShiftViolations(nurseShiftsDict)
         shiftsPerWeekViolations = self.countShiftsPerWeekViolations(nurseShiftsDict)[1]
         nursesPerShiftViolations = self.countNursesPerShiftViolations(nurseShiftsDict)[1]
         shiftPreferenceViolations = self.countShiftPreferenceViolations(nurseShiftsDict)
         lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
 
         # calculate the cost of the violations:
-        hardContstraintViolations = nursesPerShiftViolations + shiftsPerWeekViolations + lessthan2perDep
+        hardContstraintViolations = nursesPerShiftViolations + shiftsPerWeekViolations + lessthan2perDep - consecutiveShiftViolations
         softContstraintViolations = shiftPreferenceViolations
 
         return self.hardConstraintPenalty * hardContstraintViolations + softContstraintViolations
