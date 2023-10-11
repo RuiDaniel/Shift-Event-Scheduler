@@ -2,15 +2,13 @@ from deap import tools
 from deap import algorithms
 from deap import base
 from deap import creator
-
 import random
-
 import numpy as np
-
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 import pandas as pd
+
+# Values to change according to JEEC's edition
 
 N_WEEKS_JEEC = 1
 N_DIAS_JEEC = 2 # TODO 
@@ -33,9 +31,12 @@ def use_forms():
 
     forms = pd.read_csv(name + ".csv", encoding='utf-8') 
 
-    dias = ['Dia 1', 'Dia 2', 'Dia 3', 'Dia 4', 'Dia 5', 'Dia 6', 'Dia 7', 'Dia 8', 'Dia 9']
+    # Match with forms.xlsx
+    dias = ['Assinala de acordo com a tua disponibilidade. (preenche com a tua disponibilidade máxima, e.g., when2meet) [Dia 1]', 
+            'Assinala de acordo com a tua disponibilidade. (preenche com a tua disponibilidade máxima, e.g., when2meet) [Dia 2]']
 
-    turnoss= ['_8h_9h', '_9h_10h', '_10h_11h', '_11h_12h', '_12h_13h', '_13h_14h', '_14h_15h', '_15h_16h', '_16h_17h', '_17h_18h']
+    # Match with forms.xlsx
+    turnoss = ['8h-9h', '9h-10h', '10h-11h', '11h-12h', '12h-13h', '13h-14h', '14h-15h', '15h-16h', '16h-17h', '17h-18h']
 
     to_exc = []
 
@@ -183,7 +184,6 @@ class NurseSchedulingProblem:
         # useful values:
         self.shiftPerDay = len(self.shiftMin)
         self.shiftsPerWeek = N_DIAS_JEEC * self.shiftPerDay
-
         
     def __len__(self):
         """
