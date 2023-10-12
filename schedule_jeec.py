@@ -8,18 +8,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
+# JEEC Member = JEECM
+
 # Values to change according to JEEC's edition
 
-N_WEEKS_JEEC = 1
-N_DIAS_JEEC = 2 # TODO 
+# TODO COORDINATION
+N_DIAS_JEEC = 2 
+NUM_MIN_ELEMENTS_PER_DEP = 2
 MAX_SHIFTS_PER_WEEK = 20
 MIN_SHIFTS_PER_WEEK = 5
 MAX_SHIFTS_PER_WEEK_VOLUNTEER = 5
 MIN_SHIFTS_PER_WEEK_VOLUNTEER = 2
-N_SHIFTS_PER_DAY = 10 # TODO
-departments = ['WebDev', 'Speakers', 'Business', 'Coordinator', 'Logistics', 'Marketing', 'Volunteer']
+N_SHIFTS_PER_DAY = 10
+departments = ['WebDev', 'Speakers', 'Business', 'Logistics', 'Marketing', 'Volunteer']
+
 n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
-NUM_MIN_ELEMENTS_PER_DEP = 2
 
 # Generate pessoas.xlsx based on forms.xlsx
 def use_forms():
@@ -31,6 +34,8 @@ def use_forms():
 
     forms = pd.read_csv(name + ".csv", encoding='utf-8') 
 
+    # TODO COORDINATION
+    
     # Match with forms.xlsx
     dias = ['Assinala de acordo com a tua disponibilidade. (preenche com a tua disponibilidade máxima, e.g., when2meet) [Dia 1]', 
             'Assinala de acordo com a tua disponibilidade. (preenche com a tua disponibilidade máxima, e.g., when2meet) [Dia 2]']
@@ -79,6 +84,8 @@ pref_shift = {}
 for index, row in turnos.iterrows():
     pref_shift[row['turnos']] = row['preferencia']
     
+pref_shift['Extra'] = ''
+
 # print(turnos)
 # print(pref_shift)
 
@@ -142,8 +149,8 @@ def eaSimpleWithElitism(population, toolbox, cxpb, mutpb, ngen, stats=None,
 
     return population, logbook
 
-class NurseSchedulingProblem:
-    """This class encapsulates the Nurse Scheduling problem
+class JEECMSchedulingProblem:
+    """This class encapsulates the JEECM Scheduling problem
     """
 
     def __init__(self, hardConstraintPenalty):
@@ -152,14 +159,14 @@ class NurseSchedulingProblem:
         """
         self.hardConstraintPenalty = hardConstraintPenalty
 
-        # list of nurses:
-        self.nurses = pessoas['Nome']
-        self.nurses_equipas = pessoas['Equipa']
+        # list of JEECMs:
+        self.JEECMs = pessoas['Nome']
+        self.JEECMs_equipas = pessoas['Equipa']
 
-        # nurses' respective shift preferences - morning, evening, night:
+        # JEECMs' respective shift preferences - morning, evening, night:
         self.shiftPreference = pessoas['Disponibilidade']
 
-        # min and max number of nurses allowed for each shift - morning, evening, night:
+        # min and max number of JEECMs allowed for each shift - morning, evening, night:
         turnos_head_dec = str(turnos.head(1)['decorre']).split()[1]
         
         self.shiftMin = [0 for _ in turnos_head_dec.split(sep=',')]
@@ -172,24 +179,17 @@ class NurseSchedulingProblem:
                 self.shiftMin[i] += dec[i] * int(row['Num Pessoas'])
                 self.shiftMax[i] += dec[i] * int(row['Num Pessoas'])
 
-        # max shifts per week allowed for each nurse
+        # max shifts per week allowed for each JEECM
         self.maxShiftsPerWeek = MAX_SHIFTS_PER_WEEK
         self.minShiftsPerWeek = MIN_SHIFTS_PER_WEEK
         self.maxShiftsPerWeekVol = MAX_SHIFTS_PER_WEEK_VOLUNTEER
         self.minShiftsPerWeekVol = MIN_SHIFTS_PER_WEEK_VOLUNTEER
-
-        # number of weeks we create a schedule for:
-        self.weeks = N_WEEKS_JEEC
-
-        # useful values:
-        self.shiftPerDay = len(self.shiftMin)
-        self.shiftsPerWeek = N_DIAS_JEEC * self.shiftPerDay
         
     def __len__(self):
         """
         :return: the number of shifts in the schedule
         """
-        return len(self.nurses) * self.shiftsPerWeek * self.weeks
+        return len(self.JEECMs) * n_shifts
 
 
     def getCost(self, schedule):
@@ -203,76 +203,76 @@ class NurseSchedulingProblem:
         if len(schedule) != self.__len__():
             raise ValueError("size of schedule list should be equal to ", self.__len__())
 
-        # convert entire schedule into a dictionary with a separate schedule for each nurse:
-        nurseShiftsDict = self.getNurseShifts(schedule)
+        # convert entire schedule into a dictionary with a separate schedule for each JEECM:
+        JEECMShiftsDict = self.getJEECMShifts(schedule)
 
         # count the various violations:
-        consecutiveShiftViolations = self.countConsecutiveShiftViolations(nurseShiftsDict)
-        shiftsPerWeekViolations = self.countShiftsPerWeekViolations(nurseShiftsDict)[1]
-        nursesPerShiftViolations = self.countNursesPerShiftViolations(nurseShiftsDict)[1]
-        shiftPreferenceViolations = self.countShiftPreferenceViolations(nurseShiftsDict)
-        lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
+        consecutiveShiftViolations = self.countConsecutiveShiftViolations(JEECMShiftsDict)
+        shiftsPerWeekViolations = self.countShiftsPerWeekViolations(JEECMShiftsDict)[1]
+        JEECMsPerShiftViolations = self.countJEECMsPerShiftViolations(JEECMShiftsDict)[1]
+        shiftPreferenceViolations = self.countShiftPreferenceViolations(JEECMShiftsDict)
+        lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
 
         # calculate the cost of the violations:
-        hardContstraintViolations = nursesPerShiftViolations + shiftsPerWeekViolations + lessthan2perDep - consecutiveShiftViolations
-        softContstraintViolations = shiftPreferenceViolations
+        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations*10 + JEECMsPerShiftViolations
+        softContstraintViolations = lessthan2perDep - consecutiveShiftViolations
 
         return self.hardConstraintPenalty * hardContstraintViolations + softContstraintViolations
 
-    def getNurseShifts(self, schedule):
+    def getJEECMShifts(self, schedule):
         """
-        Converts the entire schedule into a dictionary with a separate schedule for each nurse
+        Converts the entire schedule into a dictionary with a separate schedule for each JEECM
         :param schedule: a list of binary values describing the given schedule
-        :return: a dictionary with each nurse as a key and the corresponding shifts as the value
+        :return: a dictionary with each JEECM as a key and the corresponding shifts as the value
         """
-        shiftsPerNurse = self.__len__() // len(self.nurses)
-        nurseShiftsDict = {}
+        shiftsPerJEECM = self.__len__() // len(self.JEECMs)
+        JEECMShiftsDict = {}
         shiftIndex = 0
 
-        for nurse in self.nurses:
-            nurseShiftsDict[nurse] = schedule[shiftIndex:shiftIndex + shiftsPerNurse]
-            shiftIndex += shiftsPerNurse
+        for JEECM in self.JEECMs:
+            JEECMShiftsDict[JEECM] = schedule[shiftIndex:shiftIndex + shiftsPerJEECM]
+            shiftIndex += shiftsPerJEECM
 
-        return nurseShiftsDict
+        return JEECMShiftsDict
 
-    def countConsecutiveShiftViolations(self, nurseShiftsDict):
+    def countConsecutiveShiftViolations(self, JEECMShiftsDict):
         """
         Counts the consecutive shift violations in the schedule
-        :param nurseShiftsDict: a dictionary with a separate schedule for each nurse
+        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
         :return: count of violations found
         """
         violations = 0
-        # iterate over the shifts of each nurse:
-        for nurseShifts in nurseShiftsDict.values():
+        # iterate over the shifts of each JEECM:
+        for JEECMShifts in JEECMShiftsDict.values():
             # look for two cosecutive '1's:
-            for shift1, shift2 in zip(nurseShifts, nurseShifts[1:]):
+            for shift1, shift2 in zip(JEECMShifts, JEECMShifts[1:]):
                 if shift1 == 1 and shift2 == 1:
                     violations += 1
         return violations
 
-    def countShiftsPerWeekViolations(self, nurseShiftsDict):
+    def countShiftsPerWeekViolations(self, JEECMShiftsDict):
         """
         Counts the max-shifts-per-week violations in the schedule
-        :param nurseShiftsDict: a dictionary with a separate schedule for each nurse
+        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
         :return: count of violations found
         """
         violations = 0
         weeklyShiftsList = []
-        # iterate over the shifts of each nurse:
+        # iterate over the shifts of each JEECM:
             
-        for member in nurseShiftsDict:
-            nurseShifts = nurseShiftsDict[member]
+        for member in JEECMShiftsDict:
+            JEECMShifts = JEECMShiftsDict[member]
             # name = member
             # print(len(shifts))
             
-            for i in range(len(self.nurses)):
-                if self.nurses[i] == member:
-                    equipa = self.nurses_equipas[i]
+            for i in range(len(self.JEECMs)):
+                if self.JEECMs[i] == member:
+                    equipa = self.JEECMs_equipas[i]
                     
             # iterate over the shifts of each weeks:
-            for i in range(0, self.weeks * self.shiftsPerWeek, self.shiftsPerWeek):
+            for i in range(0, n_shifts, n_shifts):
                 # count all the '1's over the week:
-                weeklyShifts = sum(nurseShifts[i:i + self.shiftsPerWeek])
+                weeklyShifts = sum(JEECMShifts[i:i + n_shifts])
                 weeklyShiftsList.append(weeklyShifts)
                 if weeklyShifts > self.maxShiftsPerWeek and equipa != 'Volunteer':
                     violations += weeklyShifts - self.maxShiftsPerWeek
@@ -285,46 +285,46 @@ class NurseSchedulingProblem:
 
         return weeklyShiftsList, violations
 
-    def countNursesPerShiftViolations(self, nurseShiftsDict):
+    def countJEECMsPerShiftViolations(self, JEECMShiftsDict):
         """
-        Counts the number-of-nurses-per-shift violations in the schedule
-        :param nurseShiftsDict: a dictionary with a separate schedule for each nurse
+        Counts the number-of-JEECMs-per-shift violations in the schedule
+        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
         :return: count of violations found
         """
-        # sum the shifts over all nurses:
-        totalPerShiftList = [sum(shift) for shift in zip(*nurseShiftsDict.values())]
+        # sum the shifts over all JEECMs:
+        totalPerShiftList = [sum(shift) for shift in zip(*JEECMShiftsDict.values())]
 
         violations = 0
         # iterate over all shifts and count violations:
-        for shiftIndex, numOfNurses in enumerate(totalPerShiftList):
-            dailyShiftIndex = shiftIndex % self.shiftPerDay  # -> 0, 1, or 2 for the 3 shifts per day
-            if (numOfNurses > self.shiftMax[dailyShiftIndex]):
-                violations += numOfNurses - self.shiftMax[dailyShiftIndex]
-            elif (numOfNurses < self.shiftMin[dailyShiftIndex]):
-                violations += self.shiftMin[dailyShiftIndex] - numOfNurses
+        for shiftIndex, numOfJEECMs in enumerate(totalPerShiftList):
+            dailyShiftIndex = shiftIndex % n_shifts  # -> 0, 1, or 2 for the 3 shifts per day
+            if (numOfJEECMs > self.shiftMax[dailyShiftIndex]):
+                violations += numOfJEECMs - self.shiftMax[dailyShiftIndex]
+            elif (numOfJEECMs < self.shiftMin[dailyShiftIndex]):
+                violations += self.shiftMin[dailyShiftIndex] - numOfJEECMs
 
         return totalPerShiftList, violations
 
-    def countShiftPreferenceViolations(self, nurseShiftsDict):
+    def countShiftPreferenceViolations(self, JEECMShiftsDict):
         """
-        Counts the nurse-preferences violations in the schedule
-        :param nurseShiftsDict: a dictionary with a separate schedule for each nurse
+        Counts the JEECM-preferences violations in the schedule
+        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
         :return: count of violations found
         """
         violations = 0
-        for nurseIndex, shiftPreference in enumerate(self.shiftPreference):
+        for JEECMIndex, shiftPreference in enumerate(self.shiftPreference):
             # duplicate the shift-preference over the days of the period
-            # preference = shiftPreference * (self.shiftsPerWeek // self.shiftPerDay)
+            # preference = shiftPreference * (self.shiftsPerWeek // n_shifts)
             preference = shiftPreference
             # iterate over the shifts and compare to preferences:
-            shifts = nurseShiftsDict[self.nurses[nurseIndex]]
+            shifts = JEECMShiftsDict[self.JEECMs[JEECMIndex]]
             for pref, shift in zip(preference, shifts):
                 if pref == 0 and shift == 1:
                     violations += 1
 
         return violations
     
-    def countlessthan2perDep(self, nurseShiftsDict):
+    def countlessthan2perDep(self, JEECMShiftsDict):
         violations = 0
         
         people_per_shift = [[] for _ in range(n_shifts)]
@@ -332,8 +332,8 @@ class NurseSchedulingProblem:
         counters = {dep: 0 for dep in departments}
         # print(counters)
         
-        for member in nurseShiftsDict:
-            shifts = nurseShiftsDict[member]
+        for member in JEECMShiftsDict:
+            shifts = JEECMShiftsDict[member]
             # name = member
             # print(len(shifts))
             for i in range(len(shifts)):
@@ -347,9 +347,9 @@ class NurseSchedulingProblem:
                 # print(people)
                 # Find index of person and return team
                 # Funciona se nao houver nomes repetidos
-                for i in range(len(self.nurses)):
-                    if self.nurses[i] == people:
-                        equipa = self.nurses_equipas[i]
+                for i in range(len(self.JEECMs)):
+                    if self.JEECMs[i] == people:
+                        equipa = self.JEECMs_equipas[i]
                 
                 counters[equipa] += 1
             
@@ -366,45 +366,45 @@ class NurseSchedulingProblem:
         Prints the schedule and violations details
         :param schedule: a list of binary values describing the given schedule
         """
-        nurseShiftsDict = self.getNurseShifts(schedule)
+        JEECMShiftsDict = self.getJEECMShifts(schedule)
 
-        print("Schedule for each nurse:")
-        for nurse in nurseShiftsDict:  # all shifts of a single nurse
-            print(nurse, ":", nurseShiftsDict[nurse]) 
+        print("Schedule for each JEECM:")
+        for JEECM in JEECMShiftsDict:  # all shifts of a single JEECM
+            print(JEECM, ":", JEECMShiftsDict[JEECM]) 
+        
+        print("consecutive shift good = ", self.countConsecutiveShiftViolations(JEECMShiftsDict))
+        print()
 
-        # print("consecutive shift violations = ", self.countConsecutiveShiftViolations(nurseShiftsDict))
-        # print()
-
-        weeklyShiftsList, violations = self.countShiftsPerWeekViolations(nurseShiftsDict)
+        weeklyShiftsList, violations = self.countShiftsPerWeekViolations(JEECMShiftsDict)
         print("weekly Shifts = ", weeklyShiftsList)
         print("Shifts Per Week Violations = ", violations)
         print()
 
-        totalPerShiftList, violations = self.countNursesPerShiftViolations(nurseShiftsDict)
-        print("Nurses Per Shift = ", totalPerShiftList)
-        print("Nurses Per Shift Violations = ", violations)
+        totalPerShiftList, violations = self.countJEECMsPerShiftViolations(JEECMShiftsDict)
+        print("JEECMs Per Shift = ", totalPerShiftList)
+        print("JEECMs Per Shift Violations = ", violations)
         print()
 
-        shiftPreferenceViolations = self.countShiftPreferenceViolations(nurseShiftsDict)
+        shiftPreferenceViolations = self.countShiftPreferenceViolations(JEECMShiftsDict)
         print("Shift Preference Violations = ", shiftPreferenceViolations)
         print()
         
-        lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
+        lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
         
-        lessthan2perDep = self.countlessthan2perDep(nurseShiftsDict)
+        lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
         print("lessthan2perDep violations = ", lessthan2perDep)
         print()
 
         people_per_shift = [[] for _ in range(n_shifts)]
         # print(n_shifts)
-        for member in nurseShiftsDict:
-            shifts = nurseShiftsDict[member]
+        for member in JEECMShiftsDict:
+            shifts = JEECMShiftsDict[member]
             # name = member
             # print(len(shifts))
             
-            for i in range(len(self.nurses)):
-                if self.nurses[i] == member:
-                    equipa = self.nurses_equipas[i]
+            for i in range(len(self.JEECMs)):
+                if self.JEECMs[i] == member:
+                    equipa = self.JEECMs_equipas[i]
                         
             for i in range(len(shifts)):
                 if shifts[i] == 1:
@@ -417,7 +417,7 @@ class NurseSchedulingProblem:
         vagas = [[] for _ in range(n_shifts)]
         
         for _, row in turnos.iterrows():
-            dec = list(eval(row['decorre'])) * N_DIAS_JEEC
+            dec = list(eval(row['decorre']))
             for i in range(len(dec)):
                 for _ in range(dec[i] * int(row['Num Pessoas'])):
                     vagas[i].append({'turno': row['turnos'], 'pref': row['preferencia']})
@@ -429,9 +429,12 @@ class NurseSchedulingProblem:
             people_list = people_per_shift[i]
             vagas_list = vagas[i]
             
-            for j in range(min(len(people_list), len(vagas_list))):
+            for j in range(len(people_list)):
                 people = people_list[j]
-                final_distribution[i].append({'person': people['Name'], 'turno': vagas_list[j]['turno'], 'Equipa': people['Equipa']}) 
+                if j < len(vagas_list):
+                    final_distribution[i].append({'person': people['Name'], 'turno': vagas_list[j]['turno'], 'Equipa': people['Equipa']}) 
+                else:
+                    final_distribution[i].append({'person': people['Name'], 'turno': 'Extra', 'Equipa': people['Equipa']}) 
         
         final = []
         kk = 0
@@ -503,7 +506,7 @@ HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint viol
 POPULATION_SIZE = 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 200 # TODO 200
+MAX_GENERATIONS = 80 # TODO 200
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:
@@ -512,8 +515,8 @@ random.seed(RANDOM_SEED)
 
 toolbox = base.Toolbox()
 
-# create the nurse scheduling problem instance to be used:
-nsp = NurseSchedulingProblem(HARD_CONSTRAINT_PENALTY)
+# create the JEECM scheduling problem instance to be used:
+nsp = JEECMSchedulingProblem(HARD_CONSTRAINT_PENALTY)
 
 # define a single objective, maximizing fitness strategy:
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
