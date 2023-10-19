@@ -7,16 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import ast
 
 # JEEC Member = JEECM
 
 # Values to change according to JEEC's edition
 
 # TODO COORDINATION
-N_DIAS_JEEC = 2 
+N_DIAS_JEEC = 9
 NUM_MIN_ELEMENTS_PER_DEP = 2
 MAX_SHIFTS_PER_WEEK = 20
-MIN_SHIFTS_PER_WEEK = 5
+MIN_SHIFTS_PER_WEEK = 10
 MAX_SHIFTS_PER_WEEK_VOLUNTEER = 5
 MIN_SHIFTS_PER_WEEK_VOLUNTEER = 2
 N_SHIFTS_PER_DAY = 10
@@ -65,26 +66,26 @@ def use_forms():
     
 # use_forms() # TODO DESCOMENTAR
 
-name = 'pessoas'
-read_file = pd.read_excel (name + ".xlsx")
-read_file.to_csv (name + ".csv", 
+name_p = 'pessoas-big'
+read_file = pd.read_excel (name_p + ".xlsx")
+read_file.to_csv (name_p + ".csv", 
                   index = None,
                   header=True, encoding='utf-8')
 
-name = 'turnos'
-read_file = pd.read_excel (name + ".xlsx")
-read_file.to_csv (name + ".csv", 
+name_t = 'turnos-big'
+read_file = pd.read_excel (name_t + ".xlsx")
+read_file.to_csv (name_t + ".csv", 
                   index = None,
                   header=True, encoding='utf-8')
 
-pessoas = pd.read_csv('pessoas.csv', encoding='utf-8') 
-turnos = pd.read_csv('turnos.csv', encoding='utf-8') 
+pessoas = pd.read_csv(name_p + '.csv', encoding='utf-8') 
+turnos = pd.read_csv(name_t + '.csv', encoding='utf-8') 
 
 pref_shift = {}
 for index, row in turnos.iterrows():
-    pref_shift[row['turnos']] = row['preferencia']
+    pref_shift[row['turnos']] = ast.literal_eval(row['preferencia'])
     
-pref_shift['Extra'] = ''
+pref_shift['Extra'] = []
 
 # print(turnos)
 # print(pref_shift)
@@ -166,18 +167,20 @@ class JEECMSchedulingProblem:
         # JEECMs' respective shift preferences - morning, evening, night:
         self.shiftPreference = pessoas['Disponibilidade']
 
-        # min and max number of JEECMs allowed for each shift - morning, evening, night:
-        turnos_head_dec = str(turnos.head(1)['decorre']).split()[1]
-        
-        self.shiftMin = [0 for _ in turnos_head_dec.split(sep=',')]
-        self.shiftMax = [0 for _ in turnos_head_dec.split(sep=',')]
+        # min and max number of JEECMs allowed for each shift - morning, evening, night:        
+        self.shiftMin = []
+        self.shiftMax = []
 
-        for _, row in turnos.iterrows():
+        for v, row in turnos.iterrows():
             dec = list(eval(row['decorre']))
-            
-            for i in range(len(dec)):
-                self.shiftMin[i] += dec[i] * int(row['Num Pessoas'])
-                self.shiftMax[i] += dec[i] * int(row['Num Pessoas'])
+            if v == 0:
+                for i in range(len(dec)):
+                    self.shiftMin.append(dec[i] * int(row['Num Pessoas']))
+                    self.shiftMax.append(dec[i] * int(row['Num Pessoas']))
+            else:
+                for i in range(len(dec)):
+                    self.shiftMin[i] += dec[i] * int(row['Num Pessoas'])
+                    self.shiftMax[i] += dec[i] * int(row['Num Pessoas'])
 
         # max shifts per week allowed for each JEECM
         self.maxShiftsPerWeek = MAX_SHIFTS_PER_WEEK
@@ -409,8 +412,8 @@ class JEECMSchedulingProblem:
             for i in range(len(shifts)):
                 if shifts[i] == 1:
                     people_per_shift[i].append({'Name': member, 'Equipa': equipa})
-        
-        # print(people_per_shift)
+                # people_per_shift[i] = sorted(people_per_shift[i], key=lambda x: x['Equipa'][0])
+                random.shuffle(people_per_shift[i])
         
         final_distribution = [[] for _ in range(n_shifts)]
         
@@ -444,7 +447,7 @@ class JEECMSchedulingProblem:
                 # print('Turno ', j)
                 elements = final_distribution[i * N_SHIFTS_PER_DAY + j]
                 for element in elements:                    
-                    if element['Equipa'] == pref_shift[element['turno']]:
+                    if element['Equipa'] in pref_shift[element['turno']]:
                         pref = True
                     else:
                         pref = False
@@ -454,46 +457,83 @@ class JEECMSchedulingProblem:
         
         final = pd.DataFrame(final)
         
-        n_trocas = 1
-        while n_trocas > 0:
-            troca = []
-            for i in range(N_DIAS_JEEC):
-                for j in range(N_SHIFTS_PER_DAY): 
+        
+        for i in range(N_DIAS_JEEC):
+            for j in range(N_SHIFTS_PER_DAY): 
+                print(i, j)
+                n_trocas = 1
+                while n_trocas > 0:
+                    troca = []
                     breakk = 0
-                                   
+                                
+                    # ver pessoas neste turno sem terem prefencia por este 
                     data = final[(final['Dia'] == i) & (final['Horario'] == j) & (final['preference'] == False)]
                     # print(data)
                     if len(data) > 1:
                         for _, person in data.iterrows():
                             # print('Person: ', person)   
-                            
                             for _, k in data.iterrows():
                                 # print('k: ', k)
-                                if k['Name'] != person['Name'] and pref_shift[k['Turno']] == person['Equipa']:
+                                if k['Name'] != person['Name'] and person['Equipa'] in pref_shift[k['Turno']]:
                                     troca.append({'a': person['id'], 'b': k['id']})
                                     # print({'a': person['id'], 'b': k['id']})
                                     breakk = 1
                                     break
-                            
+                                elif k['Name'] != person['Name'] and k['Equipa'] == 'Volunteers' and person['Equipa'] != 'Volunteers' and k['Turno'] == 'CheckIn':
+                                    troca.append({'a': person['id'], 'b': k['id']})
+                                    # Proibir Volunteers no CheckIn
+                                    breakk = 1
+                                    break
+                                    
                             if breakk:
                                 break
-            
-            for tr in troca:            
-                a_index = final.index[final['id'] == tr['a']].tolist()[0] 
-                b_index = final.index[final['id'] == tr['b']].tolist()[0]  
-                
-                final.at[a_index, 'Turno'], final.at[b_index, 'Turno'] = final.at[b_index, 'Turno'], final.at[a_index, 'Turno']
-                
-                if pref_shift[final.at[a_index, 'Turno']] == final.at[a_index, 'Equipa']:
-                    final.at[a_index, 'preference'] = True
-                    # print('Pref true: ', final.at[a_index])
                     
-                if pref_shift[final.at[b_index, 'Turno']] == final.at[b_index, 'Equipa']:
-                    final.at[b_index, 'preference'] = True
-                    # print('Pref true: ', final.at[b_index])
+                    if len(troca) == 0:
+                        # Divulgação: prioridade voluntários com uma pessoa de marketing
+                        data = final[(final['Dia'] == i) & (final['Horario'] == j) & ((final['Equipa'] == 'Marketing') | (final['Equipa'] == 'Volunteer'))]
+                        # print(data)
+                        n_marketing_in_divulg = len(final[(final['Dia'] == i) & (final['Horario'] == j) & 
+                                                        (final['Equipa'] == 'Marketing') & (final['Turno'] == 'Divulgacao')])
+                        
+                        if len(data) > 1 and n_marketing_in_divulg < 1:
+                            for _, person in data.iterrows():
+                                # print('Person: ', person)   
+                                for _, k in data.iterrows():
+                                    # print('k: ', k)
+                                    if k['Name'] != person['Name'] and (person['Equipa'] == 'Volunteer' and person['Turno'] == 'Divulgacao' and
+                                                                        k['Equipa'] == 'Marketing' and k['Turno'] != 'Divulgacao'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # print({'a': person['id'], 'b': k['id']})
+                                        breakk = 1
+                                        break
+                                    elif k['Name'] != person['Name'] and (k['Equipa'] == 'Volunteer' and k['Turno'] == 'Divulgacao' and
+                                                                        person['Equipa'] == 'Marketing' and person['Turno'] != 'Divulgacao'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # Proibir Volunteers no CheckIn
+                                        breakk = 1
+                                        break
+                                        
+                                if breakk:
+                                    break
             
-            n_trocas = len(troca)
-            # print('N trocas = ', n_trocas)
+                    for tr in troca:            
+                        a_index = final.index[final['id'] == tr['a']].tolist()[0] 
+                        b_index = final.index[final['id'] == tr['b']].tolist()[0]  
+                        
+                        final.at[a_index, 'Turno'], final.at[b_index, 'Turno'] = final.at[b_index, 'Turno'], final.at[a_index, 'Turno']
+                        
+                        if final.at[a_index, 'Equipa'] in pref_shift[final.at[a_index, 'Turno']]:
+                            final.at[a_index, 'preference'] = True
+                            # print('Pref true: ', final.at[a_index])
+                            
+                        if final.at[b_index, 'Equipa'] in pref_shift[final.at[b_index, 'Turno']]:
+                            final.at[b_index, 'preference'] = True
+                            # print('Pref true: ', final.at[b_index])
+                
+                    n_trocas = len(troca)
+                    # print('N trocas = ', n_trocas)
+            
+        ### Divulgação: prioridade voluntários com uma pessoa de marketing
                 
         final.to_excel('distribution.xlsx', index=False)  
                 
@@ -506,7 +546,7 @@ HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint viol
 POPULATION_SIZE = 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 80 # TODO 200
+MAX_GENERATIONS = 1 # TODO 200
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:
@@ -584,7 +624,7 @@ def main():
     plt.xlabel('Generation')
     plt.ylabel('Min / Average Fitness')
     plt.title('Min and Average fitness over Generations')
-    plt.show()
+    # plt.show()
 
 if __name__ == "__main__":
     main()

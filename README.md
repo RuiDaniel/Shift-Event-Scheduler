@@ -39,13 +39,12 @@ Questionário -> Horário sem turno atribuído (usa excel das pessoas) -> Distri
 -Max e min turnos dos voluntários
 -Mapear pessoas por turnos com prioridade de departamento pelos turnos (ex: turnos de Marketing têm prioridade de malta do dep de marketing)
 
+-Proibir Volunteers no CheckIn
+-Divulgaçao pelo menos 1 de MK, feito com ordenaçao do people por shift (MK aparece sempre primeiro de Vol)
+
 
 # TODO
 
--Turnos assimétricos (de dia para dia a existencia de turnos pode variar)
--Código legível
 
 -Planear um mega teste
-.Falar com Daniel sobre turnos
-.Ver quanto tempo demora
 
