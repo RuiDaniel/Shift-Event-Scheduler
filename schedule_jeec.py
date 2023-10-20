@@ -14,13 +14,13 @@ import ast
 # Values to change according to JEEC's edition
 
 # TODO COORDINATION
-N_DIAS_JEEC = 9
+N_DIAS_JEEC = 9 # TODO 9
 NUM_MIN_ELEMENTS_PER_DEP = 2
-MAX_SHIFTS_PER_WEEK = 20
+MAX_SHIFTS_PER_WEEK = 30
 MIN_SHIFTS_PER_WEEK = 10
 MAX_SHIFTS_PER_WEEK_VOLUNTEER = 5
 MIN_SHIFTS_PER_WEEK_VOLUNTEER = 2
-N_SHIFTS_PER_DAY = 10
+N_SHIFTS_PER_DAY = 6
 departments = ['WebDev', 'Speakers', 'Business', 'Logistics', 'Marketing', 'Volunteer']
 
 n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
@@ -42,7 +42,7 @@ def use_forms():
             'Assinala de acordo com a tua disponibilidade. (preenche com a tua disponibilidade máxima, e.g., when2meet) [Dia 2]']
 
     # Match with forms.xlsx
-    turnoss = ['8h-9h', '9h-10h', '10h-11h', '11h-12h', '12h-13h', '13h-14h', '14h-15h', '15h-16h', '16h-17h', '17h-18h']
+    turnoss = ['8h-10h', '10h-12h', '12h-14h', '14h-16h' '16h-18h', '18h-20h']
 
     to_exc = []
 
@@ -217,7 +217,7 @@ class JEECMSchedulingProblem:
         lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
 
         # calculate the cost of the violations:
-        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations*10 + JEECMsPerShiftViolations
+        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations + JEECMsPerShiftViolations
         softContstraintViolations = lessthan2perDep - consecutiveShiftViolations
 
         return self.hardConstraintPenalty * hardContstraintViolations + softContstraintViolations
@@ -357,10 +357,13 @@ class JEECMSchedulingProblem:
                 counters[equipa] += 1
             
             for dep in departments:
-                if counters[dep] < NUM_MIN_ELEMENTS_PER_DEP:
+                if (counters[dep] < NUM_MIN_ELEMENTS_PER_DEP and dep != 'Marketing') or (counters[dep] < 1 and dep == 'Marketing'):
                     violations += 1
-                counters[dep] = 0
                 
+                #penalise a lot of volunteers
+                if (counters[dep] > 10 and dep == 'Volunteer'):
+                    violations += 1
+                counters[dep] = 0           
 
         return violations
 
@@ -479,7 +482,7 @@ class JEECMSchedulingProblem:
                                     # print({'a': person['id'], 'b': k['id']})
                                     breakk = 1
                                     break
-                                elif k['Name'] != person['Name'] and k['Equipa'] == 'Volunteers' and person['Equipa'] != 'Volunteers' and k['Turno'] == 'CheckIn':
+                                elif k['Name'] != person['Name'] and k['Equipa'] == 'Volunteer' and person['Equipa'] != 'Volunteer' and k['Turno'] == 'CheckIn' and person['Turno'] != 'CheckIn':
                                     troca.append({'a': person['id'], 'b': k['id']})
                                     # Proibir Volunteers no CheckIn
                                     breakk = 1
@@ -525,10 +528,14 @@ class JEECMSchedulingProblem:
                         if final.at[a_index, 'Equipa'] in pref_shift[final.at[a_index, 'Turno']]:
                             final.at[a_index, 'preference'] = True
                             # print('Pref true: ', final.at[a_index])
+                        else: 
+                            final.at[a_index, 'preference'] = False
                             
                         if final.at[b_index, 'Equipa'] in pref_shift[final.at[b_index, 'Turno']]:
                             final.at[b_index, 'preference'] = True
                             # print('Pref true: ', final.at[b_index])
+                        else: 
+                            final.at[b_index, 'preference'] = False
                 
                     n_trocas = len(troca)
                     # print('N trocas = ', n_trocas)
