@@ -42,6 +42,8 @@ Questionário -> Horário sem turno atribuído (usa excel das pessoas) -> Distri
 -Proibir Volunteers no CheckIn
 -Divulgaçao pelo menos 1 de MK, feito com ordenaçao do people por shift (MK aparece sempre primeiro de Vol)
 
+Tudo corrigido
+
 
 # TODO
 

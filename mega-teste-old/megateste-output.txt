@@ -1,4 +1,3 @@
-feito com 10*shiftsPerWeekViolations
 
 gen     nevals  min             avg        
 0       300     2.99958e+08     3.17386e+08
@@ -221,11 +220,6 @@ PROBLEMAS:
 -Demasiadas pessoas em turnos extra (principalmente Voluntarios)
 -So é preciso 1 pessoa de mk em cada turno
 
-2º mega teste
-
--10 para 6 turnos diários
--Demasiadas pessoas em turnos extra (principalmente Voluntarios)
-
 Regras:
 No mínimo 2 pessoas de business durante o dia (sem contar com o Diogo)
 Voluntários não fazer turnos de checkin
@@ -236,6 +230,12 @@ Checkin: prioridade business ou speakers ou logística
 Auditório: prioridade logística
 Almoços: prioridade business e logística
 Divulgação: prioridade voluntários com uma pessoa de marketing
+
+
+2º mega teste
+
+-Demasiadas pessoas em turnos extra (principalmente Voluntarios): correçao feito com 10*shiftsPerWeekViolations
+
 
 9 dias de turnos
 Voluntários: 20-30
