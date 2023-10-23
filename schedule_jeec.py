@@ -16,7 +16,7 @@ import ast
 # TODO COORDINATION
 N_DIAS_JEEC = 9 # TODO 9
 NUM_MIN_ELEMENTS_PER_DEP = 2
-MAX_SHIFTS_PER_WEEK = 40
+MAX_SHIFTS_PER_WEEK = 20
 MIN_SHIFTS_PER_WEEK = 5 # TODO 5
 MAX_SHIFTS_PER_WEEK_VOLUNTEER = 10
 MIN_SHIFTS_PER_WEEK_VOLUNTEER = 3 # TODO 3
@@ -42,7 +42,7 @@ def use_forms():
             'Assinala de acordo com a tua disponibilidade. (preenche com a tua disponibilidade máxima, e.g., when2meet) [Dia 2]']
 
     # Match with forms.xlsx
-    turnoss = ['9h-10:30h', '10:30h-12h', '12h-13:30h', '13:30h-15h' '15:30h-17h', '17h-18:30h', '18:30h-19:30h']
+    turnoss = ['9h-10:30h', '10:30h-12h', '12h-13:30h', '13:30h-15h' '15h-16:30h', '16:30h-18h', '18h-19:30h']
 
     to_exc = []
 
@@ -66,13 +66,13 @@ def use_forms():
     
 # use_forms() # TODO DESCOMENTAR
 
-name_p = 'pessoas-big'
+name_p = 'pessoas'
 read_file = pd.read_excel (name_p + ".xlsx")
 read_file.to_csv (name_p + ".csv", 
                   index = None,
                   header=True, encoding='utf-8')
 
-name_t = 'turnos-big'
+name_t = 'turnos'
 read_file = pd.read_excel (name_t + ".xlsx")
 read_file.to_csv (name_t + ".csv", 
                   index = None,
@@ -217,8 +217,8 @@ class JEECMSchedulingProblem:
         lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
         
         # calculate the cost of the violations:
-        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations*10 + JEECMsPerShiftViolations
-        softContstraintViolations = lessthan2perDep - consecutiveShiftViolations*0.001
+        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations*10 + JEECMsPerShiftViolations + lessthan2perDep * 0.01
+        softContstraintViolations =  - consecutiveShiftViolations*0.001
 
         return self.hardConstraintPenalty * hardContstraintViolations + softContstraintViolations
 
@@ -246,11 +246,15 @@ class JEECMSchedulingProblem:
         """
         violations = 0
         # iterate over the shifts of each JEECM:
+        
         for JEECMShifts in JEECMShiftsDict.values():
             # look for two cosecutive '1's:
+            kk = 0
             for shift1, shift2 in zip(JEECMShifts, JEECMShifts[1:]):
-                if shift1 == 1 and shift2 == 1:
+                if shift1 == 1 and shift2 == 1 and (kk + 1) % N_SHIFTS_PER_DAY != 0:
                     violations += 1
+                kk += 1
+                
         return violations
 
     def countShiftsPerWeekViolations(self, JEECMShiftsDict):
@@ -359,7 +363,8 @@ class JEECMSchedulingProblem:
                 
                 for dep in departments:
                     if dep != 'Volunteer':
-                        if (counters[dep] < NUM_MIN_ELEMENTS_PER_DEP and dep != 'Marketing') or (counters[dep] < 1 and dep == 'Marketing'):
+                        # if (counters[dep] < NUM_MIN_ELEMENTS_PER_DEP and dep != 'Marketing') or (counters[dep] < 1 and dep == 'Marketing'):
+                        if counters[dep] < NUM_MIN_ELEMENTS_PER_DEP:
                             violations += 1
                     
                     #penalise a lot of volunteers
@@ -373,7 +378,7 @@ class JEECMSchedulingProblem:
         violations = 0
         for person_shifts in people_shifts:
             for i in range(1, n_shifts):
-                if person_shifts[i-1] == person_shifts[i]:
+                if person_shifts[i-1] == person_shifts[i] and i % N_SHIFTS_PER_DAY != 0: # Não conta com turnos fim dia->inicio dia seguinte
                     violations+=1
         return violations
 
@@ -541,7 +546,7 @@ class JEECMSchedulingProblem:
                     kk += 1
         
         final = pd.DataFrame(final)
-        
+        final.to_excel('distribution_com_extras.xlsx') 
         
         for i in range(N_DIAS_JEEC):
             for j in range(N_SHIFTS_PER_DAY): 
@@ -575,24 +580,24 @@ class JEECMSchedulingProblem:
                     
                     if len(troca) == 0:
                         # Divulgação: prioridade voluntários com uma pessoa de marketing
-                        data = final[(final['Dia'] == i) & (final['Horario'] == j) & ((final['Equipa'] == 'Marketing') | (final['Equipa'] == 'Volunteer'))]
+                        data2 = final[(final['Dia'] == i) & (final['Horario'] == j) & ((final['Equipa'] == 'Marketing') | (final['Equipa'] == 'Volunteer'))]
                         # print(data)
                         n_marketing_in_divulg = len(final[(final['Dia'] == i) & (final['Horario'] == j) & 
                                                         (final['Equipa'] == 'Marketing') & (final['Turno'] == 'Divulgacao')])
                         
-                        if len(data) > 1 and n_marketing_in_divulg < 1:
-                            for _, person in data.iterrows():
+                        if len(data2) > 1 and n_marketing_in_divulg < 1:
+                            for _, person in data2.iterrows():
                                 # print('Person: ', person)   
-                                for _, k in data.iterrows():
+                                for _, k in data2.iterrows():
                                     # print('k: ', k)
                                     if k['Name'] != person['Name'] and (person['Equipa'] == 'Volunteer' and person['Turno'] == 'Divulgacao' and
-                                                                        k['Equipa'] == 'Marketing' and k['Turno'] != 'Divulgacao'):
+                                                                        k['Equipa'] == 'Marketing' and k['Turno'] != 'Divulgacao' and k['Turno'] != 'MarketingTurno'):
                                         troca.append({'a': person['id'], 'b': k['id']})
                                         # print({'a': person['id'], 'b': k['id']})
                                         breakk = 1
                                         break
                                     elif k['Name'] != person['Name'] and (k['Equipa'] == 'Volunteer' and k['Turno'] == 'Divulgacao' and
-                                                                        person['Equipa'] == 'Marketing' and person['Turno'] != 'Divulgacao'):
+                                                                        person['Equipa'] == 'Marketing' and person['Turno'] != 'Divulgacao' and person['Turno'] != 'MarketingTurno'):
                                         troca.append({'a': person['id'], 'b': k['id']})
                                         # Proibir Volunteers no CheckIn
                                         breakk = 1
@@ -623,6 +628,26 @@ class JEECMSchedulingProblem:
                                         
                             if breakk:
                                 break
+            
+                    if len(troca) == 0 and (i > 1 or i < N_SHIFTS_PER_DAY - 2):
+                        # Divulgação: prioridade voluntários com uma pessoa de marketing
+                        data3 = final[(final['Dia'] == i) & (final['Horario'] == j)]
+                        # print(data)
+                        
+                        if len(data3) > 1:
+                            for _, person in data3.iterrows():
+                                # print('Person: ', person)   
+                                for _, k in data3.iterrows():
+                                    # print('k: ', k)
+                                    if k['Name'] != person['Name'] and (person['Equipa'] != 'Marketing' and person['Turno'] == 'MarketingTurno' and
+                                                                        k['Equipa'] == 'Marketing' and k['Turno'] != 'MarketingTurno'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # print({'a': person['id'], 'b': k['id']})
+                                        breakk = 1
+                                        break
+                                        
+                                if breakk:
+                                    break
             
                     for tr in troca:     
                         a_index = final.index[final['id'] == tr['a']].tolist()[0] 
@@ -675,6 +700,7 @@ class JEECMSchedulingProblem:
                                         df_neww = data_to_add[(data_to_add['id'] == idd)]
                                         new_final = pd.concat([new_final,df_neww], ignore_index=True)
                                     
+        new_final = new_final[(new_final['Equipa'] == 'Marketing') | ((new_final['Equipa'] != 'Marketing') & (new_final['Turno'] != 'MarketingTurno'))]
         
         new_final.to_excel('distribution.xlsx') 
     
@@ -727,10 +753,10 @@ class JEECMSchedulingProblem:
 HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint violation
 
 # Genetic Algorithm constants:
-POPULATION_SIZE = 300 # TODO 300
+POPULATION_SIZE = 4 # TODO 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 200 # TODO 200
+MAX_GENERATIONS = 1 # TODO 200
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:

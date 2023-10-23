@@ -66,13 +66,13 @@ def use_forms():
     
 # use_forms() # TODO DESCOMENTAR
 
-name_p = 'pessoas-big'
+name_p = 'pessoas'
 read_file = pd.read_excel (name_p + ".xlsx")
 read_file.to_csv (name_p + ".csv", 
                   index = None,
                   header=True, encoding='utf-8')
 
-name_t = 'turnos-big'
+name_t = 'turnos'
 read_file = pd.read_excel (name_t + ".xlsx")
 read_file.to_csv (name_t + ".csv", 
                   index = None,
@@ -627,7 +627,134 @@ class JEECMSchedulingProblem:
             
         ### Divulgação: prioridade voluntários com uma pessoa de marketing
                 
-        final = pd.read_excel('MEGA_TEST/distribution.xlsx')  
+        final = pd.read_excel('MEGA_TEST-23-10/distribution.xlsx')  
+    
+        for i in range(N_DIAS_JEEC):
+            for j in range(N_SHIFTS_PER_DAY): 
+                print(i, j)
+                n_trocas = 1
+                while n_trocas > 0:
+                    troca = []
+                    breakk = 0
+                                
+                    # ver pessoas neste turno sem terem prefencia por este 
+                    data = final[(final['Dia'] == i) & (final['Horario'] == j) & (final['preference'] == False)]
+                    # print(data)
+                    if len(data) > 1:
+                        for _, person in data.iterrows():
+                            # print('Person: ', person)   
+                            for _, k in data.iterrows():
+                                # print('k: ', k)
+                                if k['Name'] != person['Name'] and person['Equipa'] in pref_shift[k['Turno']]:
+                                    troca.append({'a': person['id'], 'b': k['id']})
+                                    # print({'a': person['id'], 'b': k['id']})
+                                    breakk = 1
+                                    break
+                                elif k['Name'] != person['Name'] and k['Equipa'] == 'Volunteer' and person['Equipa'] != 'Volunteer' and k['Turno'] == 'CheckIn' and person['Turno'] != 'CheckIn':
+                                    troca.append({'a': person['id'], 'b': k['id']})
+                                    # Proibir Volunteers no CheckIn
+                                    breakk = 1
+                                    break
+                                    
+                            if breakk:
+                                break
+                    
+                    if len(troca) == 0:
+                        # Divulgação: prioridade voluntários com uma pessoa de marketing
+                        data2 = final[(final['Dia'] == i) & (final['Horario'] == j) & ((final['Equipa'] == 'Marketing') | (final['Equipa'] == 'Volunteer'))]
+                        # print(data)
+                        n_marketing_in_divulg = len(final[(final['Dia'] == i) & (final['Horario'] == j) & 
+                                                        (final['Equipa'] == 'Marketing') & (final['Turno'] == 'Divulgacao')])
+                        
+                        if len(data2) > 1 and n_marketing_in_divulg < 1:
+                            for _, person in data2.iterrows():
+                                # print('Person: ', person)   
+                                for _, k in data2.iterrows():
+                                    # print('k: ', k)
+                                    if k['Name'] != person['Name'] and (person['Equipa'] == 'Volunteer' and person['Turno'] == 'Divulgacao' and
+                                                                        k['Equipa'] == 'Marketing' and k['Turno'] != 'Divulgacao' and k['Turno'] != 'MarketingTurno'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # print({'a': person['id'], 'b': k['id']})
+                                        breakk = 1
+                                        break
+                                    elif k['Name'] != person['Name'] and (k['Equipa'] == 'Volunteer' and k['Turno'] == 'Divulgacao' and
+                                                                        person['Equipa'] == 'Marketing' and person['Turno'] != 'Divulgacao' and person['Turno'] != 'MarketingTurno'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # Proibir Volunteers no CheckIn
+                                        breakk = 1
+                                        break
+                                        
+                                if breakk:
+                                    break
+                    
+                    if len(troca) == 0 and len(data) > 1:
+                        for _, person in data.iterrows():
+                            # print('Person: ', person)   
+                            for _, k in data.iterrows():
+                                numTurnosperson = len(final[(final['Name'] == person['Name']) & (final['Turno'] != 'Extra')])
+                                numTurnosk = len(final[(final['Name'] == k['Name']) & (final['Turno'] != 'Extra')])
+                                numTeamMembsInShift = len(data[((data['Equipa'] == person['Equipa']) & (data['Turno'] != 'Extra'))])
+                                
+                                if k['Name'] != person['Name'] and k['Turno'] == 'Extra' and person['Turno'] != 'Extra' and k['Equipa'] != 'Volunteer' and numTurnosperson > numTurnosk + 1 and (numTeamMembsInShift > 2 or person['Equipa'] == 'Volunteer'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # Proibir Volunteers no CheckIn
+                                        breakk = 1
+                                        break
+                                    
+                                elif k['Name'] != person['Name'] and k['Turno'] == 'Extra' and person['Turno'] != 'Extra' and person['Equipa'] == 'Volunteer' and k['Equipa'] != 'Volunteer' and numTurnosperson > MAX_SHIFTS_PER_WEEK_VOLUNTEER:
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # Proibir Volunteers no CheckIn
+                                        breakk = 1
+                                        break
+                                        
+                            if breakk:
+                                break
+            
+                    if len(troca) == 0:
+                        # Divulgação: prioridade voluntários com uma pessoa de marketing
+                        data3 = final[(final['Dia'] == i) & (final['Horario'] == j)]
+                        # print(data)
+                        
+                        if len(data3) > 1:
+                            for _, person in data3.iterrows():
+                                # print('Person: ', person)   
+                                for _, k in data3.iterrows():
+                                    # print('k: ', k)
+                                    if k['Name'] != person['Name'] and (person['Equipa'] != 'Marketing' and person['Turno'] == 'MarketingTurno' and
+                                                                        k['Equipa'] == 'Marketing' and k['Turno'] != 'MarketingTurno'):
+                                        troca.append({'a': person['id'], 'b': k['id']})
+                                        # print({'a': person['id'], 'b': k['id']})
+                                        breakk = 1
+                                        break
+                                        
+                                if breakk:
+                                    break
+            
+                    for tr in troca:     
+                        a_index = final.index[final['id'] == tr['a']].tolist()[0] 
+                        b_index = final.index[final['id'] == tr['b']].tolist()[0]  
+                        
+                        # print('Troca', final.at[a_index, 'Turno'], final.at[b_index, 'Turno'])
+                        final.at[a_index, 'Turno'], final.at[b_index, 'Turno'] = final.at[b_index, 'Turno'], final.at[a_index, 'Turno']
+                        
+                        if final.at[a_index, 'Equipa'] in pref_shift[final.at[a_index, 'Turno']]:
+                            final.at[a_index, 'preference'] = True
+                            # print('Pref true: ', final.at[a_index])
+                        else: 
+                            final.at[a_index, 'preference'] = False
+                            
+                        if final.at[b_index, 'Equipa'] in pref_shift[final.at[b_index, 'Turno']]:
+                            final.at[b_index, 'preference'] = True
+                            # print('Pref true: ', final.at[b_index])
+                        else: 
+                            final.at[b_index, 'preference'] = False
+                
+                    n_trocas = len(troca)
+                    # print('N trocas = ', n_trocas)
+            
+        ### Divulgação: prioridade voluntários com uma pessoa de marketing
+                
+        # final = pd.read_excel('MEGA_TEST/distribution.xlsx')  
     
         # remover extras, com cuidado para o lessthan2
         new_final = pd.DataFrame(columns=final.columns)
@@ -654,8 +781,9 @@ class JEECMSchedulingProblem:
                                         df_neww = data_to_add[(data_to_add['id'] == idd)]
                                         new_final = pd.concat([new_final,df_neww], ignore_index=True)
                                     
+        new_final = new_final[(new_final['Equipa'] == 'Marketing') | ((new_final['Equipa'] != 'Marketing') & (new_final['Turno'] != 'MarketingTurno'))]
         
-        new_final.to_excel('MEGA_TEST/distribution_new.xlsx') 
+        new_final.to_excel('MEGA_TEST-23-10/distribution_new.xlsx') 
     
         pessoas_list = list(pessoas['Nome'])
         final_to_computions = [[] for p in pessoas_list]
