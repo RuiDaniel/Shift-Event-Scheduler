@@ -81,10 +81,5 @@ Turnos: 6 Checkin, Montagem/Desmontagem (mínimo 6), Coffee Break (mínimo 2, ma
 -Apagar consecutive de um dia para o outro
 
 
-# TODO
-
--Por no git da jeec
--Correr MegaTeste 23-10
-
 
 

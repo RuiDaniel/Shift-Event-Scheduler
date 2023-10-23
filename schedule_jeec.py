@@ -16,9 +16,9 @@ import ast
 # TODO COORDINATION
 N_DIAS_JEEC = 9 # TODO 9
 NUM_MIN_ELEMENTS_PER_DEP = 2
-MAX_SHIFTS_PER_WEEK = 20
+MAX_SHIFTS_PER_WEEK = 23
 MIN_SHIFTS_PER_WEEK = 5 # TODO 5
-MAX_SHIFTS_PER_WEEK_VOLUNTEER = 10
+MAX_SHIFTS_PER_WEEK_VOLUNTEER = 13
 MIN_SHIFTS_PER_WEEK_VOLUNTEER = 3 # TODO 3
 N_SHIFTS_PER_DAY = 7
 departments = ['WebDev', 'Speakers', 'Business', 'Logistics', 'Marketing', 'Volunteer']
@@ -181,6 +181,8 @@ class JEECMSchedulingProblem:
                 for i in range(len(dec)):
                     self.shiftMin[i] += dec[i] * int(row['Num Pessoas'])
                     self.shiftMax[i] += dec[i] * int(row['Num Pessoas'])
+                    
+            self.shiftMax[i] += 10
 
         # max shifts per week allowed for each JEECM
         self.maxShiftsPerWeek = MAX_SHIFTS_PER_WEEK
@@ -402,11 +404,16 @@ class JEECMSchedulingProblem:
         list = []
         
         for i, shift in enumerate(people_per_shift):
+            if i >= N_SHIFTS_PER_DAY * 2 and i < n_shifts - N_SHIFTS_PER_DAY * 2:
+                descontoMin = 6
+            else:
+                descontoMin = 0
+                
             numOfJEECMs = len(shift)
             list.append(numOfJEECMs)
             if (numOfJEECMs > self.shiftMax[i]):
                 violations += numOfJEECMs - self.shiftMax[i]
-            elif (numOfJEECMs < self.shiftMin[i]):
+            elif (numOfJEECMs < self.shiftMin[i] - descontoMin):
                 violations += self.shiftMin[i] - numOfJEECMs
             
         return list, violations
@@ -521,6 +528,21 @@ class JEECMSchedulingProblem:
         for i in range(len(people_per_shift)):
             people_list = people_per_shift[i]
             vagas_list = vagas[i]
+            
+            # Truque para evitar turnos vazios
+            # divulg (min4, max6), checkin (min4, max6), cofee (min2, max4)
+            if len(vagas_list) == 24:
+                vagas_list[10], vagas_list[21] = vagas_list[21], vagas_list[10]
+                vagas_list[11], vagas_list[18] = vagas_list[18], vagas_list[11]
+                vagas_list[17], vagas_list[22] = vagas_list[22], vagas_list[17]
+                vagas_list[19], vagas_list[16] = vagas_list[16], vagas_list[19]
+            elif len(vagas_list) == 30:
+                plus = 6
+                vagas_list[10+plus], vagas_list[21+plus] = vagas_list[21+plus], vagas_list[10+plus]
+                vagas_list[11+plus], vagas_list[18+plus] = vagas_list[18+plus], vagas_list[11+plus]
+                vagas_list[17+plus], vagas_list[22+plus] = vagas_list[22+plus], vagas_list[17+plus]
+                vagas_list[19+plus], vagas_list[16+plus] = vagas_list[16+plus], vagas_list[19+plus]
+            
             
             for j in range(len(people_list)):
                 people = people_list[j]
@@ -745,18 +767,16 @@ class JEECMSchedulingProblem:
         lessthan2perDep = self.countlessthan2perDep2(people_per_shift)
         print("lessthan2perDep violations = ", lessthan2perDep)
         print()
-        
-                
     
 
 # problem constants:
 HARD_CONSTRAINT_PENALTY = 10000  # the penalty factor for a hard-constraint violation
 
 # Genetic Algorithm constants:
-POPULATION_SIZE = 4 # TODO 300
+POPULATION_SIZE = 300 # TODO 300
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 1 # TODO 200
+MAX_GENERATIONS = 200 # TODO 200
 HALL_OF_FAME_SIZE = 30
 
 # set the random seed:
