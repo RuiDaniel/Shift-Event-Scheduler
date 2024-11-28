@@ -9,12 +9,12 @@ import seaborn as sns
 import pandas as pd
 import ast
 
-# JEEC Member = JEECM
+# EVENT Member = EVENTM
 
-# Values to change according to JEEC's edition
+# Values to change according to EVENT's edition
 
 # TODO COORDINATION
-N_DIAS_JEEC = 9 # TODO 9
+N_DIAS_EVENT = 9 # TODO 9
 NUM_MIN_ELEMENTS_PER_DEP = 2
 MAX_SHIFTS_PER_WEEK = 40
 MIN_SHIFTS_PER_WEEK = 5 # TODO 5
@@ -23,7 +23,7 @@ MIN_SHIFTS_PER_WEEK_VOLUNTEER = 3 # TODO 3
 N_SHIFTS_PER_DAY = 7
 departments = ['WebDev', 'Speakers', 'Business', 'Logistics', 'Marketing', 'Volunteer']
 
-n_shifts = N_DIAS_JEEC * N_SHIFTS_PER_DAY
+n_shifts = N_DIAS_EVENT * N_SHIFTS_PER_DAY
 
 # Generate pessoas.xlsx based on forms.xlsx
 def use_forms():
@@ -150,8 +150,8 @@ def eaSimpleWithElitism(population, toolbox, cxpb, mutpb, ngen, stats=None,
 
     return population, logbook
 
-class JEECMSchedulingProblem:
-    """This class encapsulates the JEECM Scheduling problem
+class EVENTMSchedulingProblem:
+    """This class encapsulates the EVENTM Scheduling problem
     """
 
     def __init__(self, hardConstraintPenalty):
@@ -160,14 +160,14 @@ class JEECMSchedulingProblem:
         """
         self.hardConstraintPenalty = hardConstraintPenalty
 
-        # list of JEECMs:
-        self.JEECMs = pessoas['Nome']
-        self.JEECMs_equipas = pessoas['Equipa']
+        # list of EVENTMs:
+        self.EVENTMs = pessoas['Nome']
+        self.EVENTMs_equipas = pessoas['Equipa']
 
-        # JEECMs' respective shift preferences - morning, evening, night:
+        # EVENTMs' respective shift preferences - morning, evening, night:
         self.shiftPreference = pessoas['Disponibilidade']
 
-        # min and max number of JEECMs allowed for each shift - morning, evening, night:        
+        # min and max number of EVENTMs allowed for each shift - morning, evening, night:        
         self.shiftMin = []
         self.shiftMax = []
 
@@ -182,7 +182,7 @@ class JEECMSchedulingProblem:
                     self.shiftMin[i] += dec[i] * int(row['Num Pessoas'])
                     self.shiftMax[i] += dec[i] * int(row['Num Pessoas'])
 
-        # max shifts per week allowed for each JEECM
+        # max shifts per week allowed for each EVENTM
         self.maxShiftsPerWeek = MAX_SHIFTS_PER_WEEK
         self.minShiftsPerWeek = MIN_SHIFTS_PER_WEEK
         self.maxShiftsPerWeekVol = MAX_SHIFTS_PER_WEEK_VOLUNTEER
@@ -192,7 +192,7 @@ class JEECMSchedulingProblem:
         """
         :return: the number of shifts in the schedule
         """
-        return len(self.JEECMs) * n_shifts
+        return len(self.EVENTMs) * n_shifts
 
 
     def getCost(self, schedule):
@@ -206,78 +206,78 @@ class JEECMSchedulingProblem:
         if len(schedule) != self.__len__():
             raise ValueError("size of schedule list should be equal to ", self.__len__())
 
-        # convert entire schedule into a dictionary with a separate schedule for each JEECM:
-        JEECMShiftsDict = self.getJEECMShifts(schedule)
+        # convert entire schedule into a dictionary with a separate schedule for each EVENTM:
+        EVENTMShiftsDict = self.getEVENTMShifts(schedule)
 
         # count the various violations:
-        consecutiveShiftViolations = self.countConsecutiveShiftViolations(JEECMShiftsDict)
-        shiftsPerWeekViolations = self.countShiftsPerWeekViolations(JEECMShiftsDict)[1]
-        JEECMsPerShiftViolations = self.countJEECMsPerShiftViolations(JEECMShiftsDict)[1]
-        shiftPreferenceViolations = self.countShiftPreferenceViolations(JEECMShiftsDict)
-        lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
+        consecutiveShiftViolations = self.countConsecutiveShiftViolations(EVENTMShiftsDict)
+        shiftsPerWeekViolations = self.countShiftsPerWeekViolations(EVENTMShiftsDict)[1]
+        EVENTMsPerShiftViolations = self.countEVENTMsPerShiftViolations(EVENTMShiftsDict)[1]
+        shiftPreferenceViolations = self.countShiftPreferenceViolations(EVENTMShiftsDict)
+        lessthan2perDep = self.countlessthan2perDep(EVENTMShiftsDict)
         
         # calculate the cost of the violations:
-        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations*10 + JEECMsPerShiftViolations
+        hardContstraintViolations = shiftPreferenceViolations + shiftsPerWeekViolations*10 + EVENTMsPerShiftViolations
         softContstraintViolations = lessthan2perDep - consecutiveShiftViolations*0.001
 
         return self.hardConstraintPenalty * hardContstraintViolations + softContstraintViolations
 
-    def getJEECMShifts(self, schedule):
+    def getEVENTMShifts(self, schedule):
         """
-        Converts the entire schedule into a dictionary with a separate schedule for each JEECM
+        Converts the entire schedule into a dictionary with a separate schedule for each EVENTM
         :param schedule: a list of binary values describing the given schedule
-        :return: a dictionary with each JEECM as a key and the corresponding shifts as the value
+        :return: a dictionary with each EVENTM as a key and the corresponding shifts as the value
         """
-        shiftsPerJEECM = self.__len__() // len(self.JEECMs)
-        JEECMShiftsDict = {}
+        shiftsPerEVENTM = self.__len__() // len(self.EVENTMs)
+        EVENTMShiftsDict = {}
         shiftIndex = 0
 
-        for JEECM in self.JEECMs:
-            JEECMShiftsDict[JEECM] = schedule[shiftIndex:shiftIndex + shiftsPerJEECM]
-            shiftIndex += shiftsPerJEECM
+        for EVENTM in self.EVENTMs:
+            EVENTMShiftsDict[EVENTM] = schedule[shiftIndex:shiftIndex + shiftsPerEVENTM]
+            shiftIndex += shiftsPerEVENTM
 
-        return JEECMShiftsDict
+        return EVENTMShiftsDict
 
-    def countConsecutiveShiftViolations(self, JEECMShiftsDict):
+    def countConsecutiveShiftViolations(self, EVENTMShiftsDict):
         """
         Counts the consecutive shift violations in the schedule
-        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
+        :param EVENTMShiftsDict: a dictionary with a separate schedule for each EVENTM
         :return: count of violations found
         """
         violations = 0
-        # iterate over the shifts of each JEECM:
-        for JEECMShifts in JEECMShiftsDict.values():
+        # iterate over the shifts of each EVENTM:
+        for EVENTMShifts in EVENTMShiftsDict.values():
             # look for two cosecutive '1's:
-            for shift1, shift2 in zip(JEECMShifts, JEECMShifts[1:]):
+            for shift1, shift2 in zip(EVENTMShifts, EVENTMShifts[1:]):
                 if shift1 == 1 and shift2 == 1:
                     violations += 1
         return violations
     
     
 
-    def countShiftsPerWeekViolations(self, JEECMShiftsDict):
+    def countShiftsPerWeekViolations(self, EVENTMShiftsDict):
         """
         Counts the max-shifts-per-week violations in the schedule
-        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
+        :param EVENTMShiftsDict: a dictionary with a separate schedule for each EVENTM
         :return: count of violations found
         """
         violations = 0
         weeklyShiftsList = []
-        # iterate over the shifts of each JEECM:
+        # iterate over the shifts of each EVENTM:
             
-        for member in JEECMShiftsDict:
-            JEECMShifts = JEECMShiftsDict[member]
+        for member in EVENTMShiftsDict:
+            EVENTMShifts = EVENTMShiftsDict[member]
             # name = member
             # print(len(shifts))
             
-            for i in range(len(self.JEECMs)):
-                if self.JEECMs[i] == member:
-                    equipa = self.JEECMs_equipas[i]
+            for i in range(len(self.EVENTMs)):
+                if self.EVENTMs[i] == member:
+                    equipa = self.EVENTMs_equipas[i]
                     
             # iterate over the shifts of each weeks:
             for i in range(0, n_shifts, n_shifts):
                 # count all the '1's over the week:
-                weeklyShifts = sum(JEECMShifts[i:i + n_shifts])
+                weeklyShifts = sum(EVENTMShifts[i:i + n_shifts])
                 weeklyShiftsList.append(weeklyShifts)
                 if weeklyShifts > self.maxShiftsPerWeek and equipa != 'Volunteer':
                     violations += weeklyShifts - self.maxShiftsPerWeek
@@ -290,46 +290,46 @@ class JEECMSchedulingProblem:
 
         return weeklyShiftsList, violations
 
-    def countJEECMsPerShiftViolations(self, JEECMShiftsDict):
+    def countEVENTMsPerShiftViolations(self, EVENTMShiftsDict):
         """
-        Counts the number-of-JEECMs-per-shift violations in the schedule
-        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
+        Counts the number-of-EVENTMs-per-shift violations in the schedule
+        :param EVENTMShiftsDict: a dictionary with a separate schedule for each EVENTM
         :return: count of violations found
         """
-        # sum the shifts over all JEECMs:
-        totalPerShiftList = [sum(shift) for shift in zip(*JEECMShiftsDict.values())]
+        # sum the shifts over all EVENTMs:
+        totalPerShiftList = [sum(shift) for shift in zip(*EVENTMShiftsDict.values())]
 
         violations = 0
         # iterate over all shifts and count violations:
-        for shiftIndex, numOfJEECMs in enumerate(totalPerShiftList):
+        for shiftIndex, numOfEVENTMs in enumerate(totalPerShiftList):
             dailyShiftIndex = shiftIndex % n_shifts  # -> 0, 1, or 2 for the 3 shifts per day
-            if (numOfJEECMs > self.shiftMax[dailyShiftIndex]):
-                violations += numOfJEECMs - self.shiftMax[dailyShiftIndex]
-            elif (numOfJEECMs < self.shiftMin[dailyShiftIndex]):
-                violations += self.shiftMin[dailyShiftIndex] - numOfJEECMs
+            if (numOfEVENTMs > self.shiftMax[dailyShiftIndex]):
+                violations += numOfEVENTMs - self.shiftMax[dailyShiftIndex]
+            elif (numOfEVENTMs < self.shiftMin[dailyShiftIndex]):
+                violations += self.shiftMin[dailyShiftIndex] - numOfEVENTMs
 
         return totalPerShiftList, violations
 
-    def countShiftPreferenceViolations(self, JEECMShiftsDict):
+    def countShiftPreferenceViolations(self, EVENTMShiftsDict):
         """
-        Counts the JEECM-preferences violations in the schedule
-        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
+        Counts the EVENTM-preferences violations in the schedule
+        :param EVENTMShiftsDict: a dictionary with a separate schedule for each EVENTM
         :return: count of violations found
         """
         violations = 0
-        for JEECMIndex, shiftPreference in enumerate(self.shiftPreference):
+        for EVENTMIndex, shiftPreference in enumerate(self.shiftPreference):
             # duplicate the shift-preference over the days of the period
             # preference = shiftPreference * (self.shiftsPerWeek // n_shifts)
             preference = shiftPreference
             # iterate over the shifts and compare to preferences:
-            shifts = JEECMShiftsDict[self.JEECMs[JEECMIndex]]
+            shifts = EVENTMShiftsDict[self.EVENTMs[EVENTMIndex]]
             for pref, shift in zip(preference, shifts):
                 if pref == 0 and shift == 1:
                     violations += 1
 
         return violations
     
-    def countlessthan2perDep(self, JEECMShiftsDict):
+    def countlessthan2perDep(self, EVENTMShiftsDict):
         violations = 0
         
         people_per_shift = [[] for _ in range(n_shifts)]
@@ -337,8 +337,8 @@ class JEECMSchedulingProblem:
         counters = {dep: 0 for dep in departments}
         # print(counters)
         
-        for member in JEECMShiftsDict:
-            shifts = JEECMShiftsDict[member]
+        for member in EVENTMShiftsDict:
+            shifts = EVENTMShiftsDict[member]
             # name = member
             # print(len(shifts))
             for i in range(len(shifts)):
@@ -353,9 +353,9 @@ class JEECMSchedulingProblem:
                     # print(people)
                     # Find index of person and return team
                     # Funciona se nao houver nomes repetidos
-                    for i in range(len(self.JEECMs)):
-                        if self.JEECMs[i] == people:
-                            equipa = self.JEECMs_equipas[i]
+                    for i in range(len(self.EVENTMs)):
+                        if self.EVENTMs[i] == people:
+                            equipa = self.EVENTMs_equipas[i]
                     
                     counters[equipa] += 1
                 
@@ -394,33 +394,33 @@ class JEECMSchedulingProblem:
                 violations += MAX_SHIFTS_PER_WEEK_VOLUNTEER - len(person_shifts)
         return list, violations
 
-    def countJEECMsPerShiftViolations2(self,people_per_shift):
+    def countEVENTMsPerShiftViolations2(self,people_per_shift):
         violations = 0
         list = []
         
         for i, shift in enumerate(people_per_shift):
-            numOfJEECMs = len(shift)
-            list.append(numOfJEECMs)
-            if (numOfJEECMs > self.shiftMax[i]):
-                violations += numOfJEECMs - self.shiftMax[i]
-            elif (numOfJEECMs < self.shiftMin[i]):
-                violations += self.shiftMin[i] - numOfJEECMs
+            numOfEVENTMs = len(shift)
+            list.append(numOfEVENTMs)
+            if (numOfEVENTMs > self.shiftMax[i]):
+                violations += numOfEVENTMs - self.shiftMax[i]
+            elif (numOfEVENTMs < self.shiftMin[i]):
+                violations += self.shiftMin[i] - numOfEVENTMs
             
         return list, violations
     
     def countShiftPreferenceViolations2(self, people_per_shift):
         """
-        Counts the JEECM-preferences violations in the schedule
-        :param JEECMShiftsDict: a dictionary with a separate schedule for each JEECM
+        Counts the EVENTM-preferences violations in the schedule
+        :param EVENTMShiftsDict: a dictionary with a separate schedule for each EVENTM
         :return: count of violations found
         """
         violations = 0
-        for JEECMIndex, shiftPreference in enumerate(self.shiftPreference):
+        for EVENTMIndex, shiftPreference in enumerate(self.shiftPreference):
             # duplicate the shift-preference over the days of the period
             # preference = shiftPreference * (self.shiftsPerWeek // n_shifts)
             preference = shiftPreference
             # iterate over the shifts and compare to preferences:
-            shifts = people_per_shift[JEECMIndex]
+            shifts = people_per_shift[EVENTMIndex]
             for pref, shift in zip(preference, shifts):
                 if pref == 0 and shift == 1:
                     violations += 1
@@ -459,43 +459,43 @@ class JEECMSchedulingProblem:
         # Prints the schedule and violations details
         # :param schedule: a list of binary values describing the given schedule
         # """
-        # JEECMShiftsDict = self.getJEECMShifts(schedule)
+        # EVENTMShiftsDict = self.getEVENTMShifts(schedule)
 
-        # print("Schedule for each JEECM:")
-        # for JEECM in JEECMShiftsDict:  # all shifts of a single JEECM
-        #     print(JEECM, ":", JEECMShiftsDict[JEECM]) 
+        # print("Schedule for each EVENTM:")
+        # for EVENTM in EVENTMShiftsDict:  # all shifts of a single EVENTM
+        #     print(EVENTM, ":", EVENTMShiftsDict[EVENTM]) 
         
-        # print("consecutive shift good = ", self.countConsecutiveShiftViolations(JEECMShiftsDict))
+        # print("consecutive shift good = ", self.countConsecutiveShiftViolations(EVENTMShiftsDict))
         # print()
 
-        # weeklyShiftsList, violations = self.countShiftsPerWeekViolations(JEECMShiftsDict)
+        # weeklyShiftsList, violations = self.countShiftsPerWeekViolations(EVENTMShiftsDict)
         # print("weekly Shifts = ", weeklyShiftsList)
         # print("Shifts Per Week Violations = ", violations)
         # print()
 
-        # totalPerShiftList, violations = self.countJEECMsPerShiftViolations(JEECMShiftsDict)
-        # print("JEECMs Per Shift = ", totalPerShiftList)
-        # print("JEECMs Per Shift Violations = ", violations)
+        # totalPerShiftList, violations = self.countEVENTMsPerShiftViolations(EVENTMShiftsDict)
+        # print("EVENTMs Per Shift = ", totalPerShiftList)
+        # print("EVENTMs Per Shift Violations = ", violations)
         # print()
 
-        # shiftPreferenceViolations = self.countShiftPreferenceViolations(JEECMShiftsDict)
+        # shiftPreferenceViolations = self.countShiftPreferenceViolations(EVENTMShiftsDict)
         # print("Shift Preference Violations = ", shiftPreferenceViolations)
         # print()
                 
-        # lessthan2perDep = self.countlessthan2perDep(JEECMShiftsDict)
+        # lessthan2perDep = self.countlessthan2perDep(EVENTMShiftsDict)
         # print("lessthan2perDep violations = ", lessthan2perDep)
         # print()
 
         # people_per_shift = [[] for _ in range(n_shifts)]
         # # print(n_shifts)
-        # for member in JEECMShiftsDict:
-        #     shifts = JEECMShiftsDict[member]
+        # for member in EVENTMShiftsDict:
+        #     shifts = EVENTMShiftsDict[member]
         #     # name = member
         #     # print(len(shifts))
             
-        #     for i in range(len(self.JEECMs)):
-        #         if self.JEECMs[i] == member:
-        #             equipa = self.JEECMs_equipas[i]
+        #     for i in range(len(self.EVENTMs)):
+        #         if self.EVENTMs[i] == member:
+        #             equipa = self.EVENTMs_equipas[i]
                         
         #     for i in range(len(shifts)):
         #         if shifts[i] == 1:
@@ -529,7 +529,7 @@ class JEECMSchedulingProblem:
         
         # final = []
         # kk = 0
-        # for i in range(N_DIAS_JEEC):
+        # for i in range(N_DIAS_EVENT):
         #     # print('Dia ', i)
         #     for j in range(N_SHIFTS_PER_DAY):
         #         # print('Turno ', j)
@@ -546,7 +546,7 @@ class JEECMSchedulingProblem:
         # final = pd.DataFrame(final)
         
         
-        # for i in range(N_DIAS_JEEC):
+        # for i in range(N_DIAS_EVENT):
         #     for j in range(N_SHIFTS_PER_DAY): 
         #         print(i, j)
         #         n_trocas = 1
@@ -629,7 +629,7 @@ class JEECMSchedulingProblem:
                 
         final = pd.read_excel('MEGA_TEST-23-10/distribution.xlsx')  
     
-        for i in range(N_DIAS_JEEC):
+        for i in range(N_DIAS_EVENT):
             for j in range(N_SHIFTS_PER_DAY): 
                 print(i, j)
                 n_trocas = 1
@@ -758,11 +758,11 @@ class JEECMSchedulingProblem:
     
         # remover extras, com cuidado para o lessthan2
         new_final = pd.DataFrame(columns=final.columns)
-        for i in range(N_DIAS_JEEC):
+        for i in range(N_DIAS_EVENT):
             for j in range(N_SHIFTS_PER_DAY): 
                 data = final[(final['Dia'] == i) & (final['Horario'] == j)]
                 
-                if i == 0 or i == 1 or i == N_DIAS_JEEC - 1 or i == N_DIAS_JEEC - 2:
+                if i == 0 or i == 1 or i == N_DIAS_EVENT - 1 or i == N_DIAS_EVENT - 2:
                     new_final = pd.concat([new_final, data[ (data['Turno'] != 'Extra')]], ignore_index=True)
                 
                 else:
@@ -814,9 +814,9 @@ class JEECMSchedulingProblem:
         print("Shifts Per Week Violations = ", violations)
         print()
 
-        totalPerShiftList, violations = self.countJEECMsPerShiftViolations2(people_per_shift)
-        print("JEECMs Per Shift = ", totalPerShiftList)
-        print("JEECMs Per Shift Violations = ", violations)
+        totalPerShiftList, violations = self.countEVENTMsPerShiftViolations2(people_per_shift)
+        print("EVENTMs Per Shift = ", totalPerShiftList)
+        print("EVENTMs Per Shift Violations = ", violations)
         print()
 
         shiftPreferenceViolations = self.countShiftPreferenceViolations2(person_shifts)
@@ -846,8 +846,8 @@ random.seed(RANDOM_SEED)
 
 toolbox = base.Toolbox()
 
-# create the JEECM scheduling problem instance to be used:
-nsp = JEECMSchedulingProblem(HARD_CONSTRAINT_PENALTY)
+# create the EVENTM scheduling problem instance to be used:
+nsp = EVENTMSchedulingProblem(HARD_CONSTRAINT_PENALTY)
 
 # define a single objective, maximizing fitness strategy:
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
